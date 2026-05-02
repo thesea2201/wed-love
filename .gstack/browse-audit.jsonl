@@ -1,0 +1,32 @@
+{"ts":"2026-05-01T08:10:03.709Z","cmd":"goto","args":"http://localhost:5175/","origin":"about:blank","durationMs":15006,"status":"error","hasCookies":false,"mode":"launched","error":"goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5175/\", waiting until \"domcontentloaded\"\u001b[22m\n"}
+{"ts":"2026-05-01T08:10:11.984Z","cmd":"screenshot","args":"/tmp/login-v3.png","origin":"about:blank","durationMs":34,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:10:17.377Z","cmd":"snapshot","args":"-i","origin":"about:blank","durationMs":10,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:10:19.959Z","cmd":"url","args":"","origin":"about:blank","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:10:35.108Z","cmd":"goto","args":"http://localhost:5175/","origin":"about:blank","durationMs":15006,"status":"error","hasCookies":false,"mode":"launched","error":"goto: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5175/\", waiting until \"domcontentloaded\"\u001b[22m\n"}
+{"ts":"2026-05-01T08:10:43.315Z","cmd":"url","args":"","origin":"about:blank","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:10:43.451Z","cmd":"text","args":"","origin":"about:blank","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:10:57.742Z","cmd":"goto","args":"http://127.0.0.1:5175/","origin":"about:blank","durationMs":9,"status":"error","hasCookies":false,"mode":"launched","error":"goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:5175/\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:5175/\", waiting until \"domcontentloaded\"\u001b[22m\n"}
+{"ts":"2026-05-01T08:11:00.947Z","cmd":"url","args":"","origin":"chrome-error://chromewebdata/","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:11:01.089Z","cmd":"text","args":"","origin":"chrome-error://chromewebdata/","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:01.543Z","cmd":"status","args":"","origin":"chrome-error://chromewebdata/","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:04.442Z","cmd":"goto","args":"http://localhost:5175","origin":"http://localhost:5175/","durationMs":279,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:07.100Z","cmd":"screenshot","args":"/tmp/wedlove-login.png","origin":"http://localhost:5175/","durationMs":41,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:12.445Z","cmd":"snapshot","args":"-i","origin":"http://localhost:5175/","durationMs":14,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:15.559Z","cmd":"fill","args":"@e1 demo@wedlove.pro","origin":"http://localhost:5175/","durationMs":20,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:18.401Z","cmd":"fill","args":"@e2 123456","origin":"http://localhost:5175/","durationMs":9,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:18.471Z","cmd":"click","args":"@e3","origin":"http://localhost:5175/","durationMs":26,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:21.119Z","cmd":"wait","args":"--networkidle","origin":"http://localhost:5175/dashboard","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:21.164Z","cmd":"url","args":"","origin":"http://localhost:5175/dashboard","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:23.685Z","cmd":"screenshot","args":"/tmp/wedlove-dashboard.png","origin":"http://localhost:5175/dashboard","durationMs":18,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:29.666Z","cmd":"console","args":"","origin":"http://localhost:5175/dashboard","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:33.555Z","cmd":"network","args":"","origin":"http://localhost:5175/dashboard","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:55.693Z","cmd":"reload","args":"","origin":"http://localhost:5175/dashboard","durationMs":60,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:38:56.880Z","cmd":"wait","args":"--networkidle","origin":"http://localhost:5175/dashboard","durationMs":1118,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:39:00.427Z","cmd":"screenshot","args":"/tmp/wedlove-dashboard2.png","origin":"http://localhost:5175/dashboard","durationMs":174,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:39:06.890Z","cmd":"snapshot","args":"-i","origin":"http://localhost:5175/dashboard","durationMs":8,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:39:10.549Z","cmd":"click","args":"@e6","origin":"http://localhost:5175/dashboard","durationMs":22,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:39:10.594Z","cmd":"wait","args":"--networkidle","origin":"http://localhost:5175/dashboard","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:39:10.702Z","cmd":"screenshot","args":"/tmp/wedlove-guests.png","origin":"http://localhost:5175/dashboard","durationMs":50,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:39:14.158Z","cmd":"goto","args":"http://localhost:5175/invitation/an-va-linh-demo","origin":"http://localhost:5175/invitation/an-va-linh-demo","durationMs":37,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:39:14.842Z","cmd":"wait","args":"--networkidle","origin":"http://localhost:5175/invitation/an-va-linh-demo","durationMs":612,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-05-01T08:39:18.621Z","cmd":"screenshot","args":"/tmp/wedlove-invitation.png","origin":"http://localhost:5175/invitation/an-va-linh-demo","durationMs":231,"status":"ok","hasCookies":false,"mode":"launched"}

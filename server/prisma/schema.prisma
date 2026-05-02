@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                  String       @id @default(uuid())
+  email               String       @unique
+  password            String
+  groomName           String
+  brideName           String
+  weddingDate         DateTime
+  phone               String?
+  avatar              String?
+  plan                String       @default("free")
+  role                String       @default("couple")
+  stripeCustomerId    String?      @map("stripe_customer_id")
+  planExpiresAt       DateTime?    @map("plan_expires_at")
+  customDomain        String?      @map("custom_domain")
+  bankQR              String?      @map("bank_qr")
+  momoEnabled         Boolean      @default(false) @map("momo_enabled")
+  invitations         Invitation[]
+  payments            Payment[]
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@map("users")
+}
+
+model Invitation {
+  id            String          @id @default(uuid())
+  userId        String          @map("user_id")
+  slug          String          @unique
+  template      String          @default("cinematic")
+  title         String
+  subtitle      String?
+  primaryColor  String          @default("#d4a574")
+  secondaryColor String?        @map("secondary_color")
+  fontFamily    String          @default("Playfair Display")
+  groomName     String
+  brideName     String
+  weddingDate   DateTime
+  venue         String?
+  venueAddress  String?         @map("venue_address")
+  ceremonyTime  String?         @map("ceremony_time")
+  receptionTime String?         @map("reception_time")
+  story         String?
+  coverPhoto    String?         @map("cover_photo")
+  gallery       String[]        @default([])
+  sections      Json            @default("[]")
+  musicUrl      String?         @map("music_url")
+  musicAutoplay Boolean         @default(false) @map("music_autoplay")
+  musicFadeIn   Boolean         @default(true) @map("music_fade_in")
+  mapUrl        String?         @map("map_url")
+  latitude      Float?
+  longitude     Float?
+  status        String          @default("draft") @map("status")
+  isPublished   Boolean         @default(false) @map("is_published")
+  publishedAt   DateTime?       @map("published_at")
+  guests        Guest[]
+  analytics     Analytics[]
+  guestPhotos   GuestPhoto[]
+  voiceMessages VoiceMessage[]
+  livestreams   Livestream[]
+  aiSuggestions AISuggestion[]
+  payments      Payment[]
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([userId])
+  @@map("invitations")
+}
+
+model Guest {
+  id                String         @id @default(uuid())
+  invitationId      String         @map("invitation_id")
+  name              String
+  email             String?
+  phone             String?
+  token             String         @unique
+  rsvpStatus        String         @default("pending") @map("rsvp_status")
+  rsvpAttendees     Int            @default(0) @map("rsvp_attendees")
+  rsvpDietary       String[]       @default([]) @map("rsvp_dietary")
+  rsvpResponded     DateTime?      @map("rsvp_responded")
+  customMessage     String?        @map("custom_message")
+  sharedPhoto       String?        @map("shared_photo")
+  tableNumber       String?        @map("table_number")
+  relationship      String?
+  qrCodeUrl         String?        @map("qr_code_url")
+  shortUrl          String?        @unique @map("short_url")
+  giftAmount        Int            @default(0) @map("gift_amount")
+  giftMessage       String?        @map("gift_message")
+  giftMethod        String?        @map("gift_method")
+  giftCurrency      String?        @default("VND") @map("gift_currency")
+  giftIsAnonymous   Boolean        @default(false) @map("gift_is_anonymous")
+  giftTransactionId String?        @map("gift_transaction_id")
+  giftPaidAt        DateTime?      @map("gift_paid_at")
+  thankYouSent      Boolean        @default(false) @map("thank_you_sent")
+  thankYouSentAt    DateTime?      @map("thank_you_sent_at")
+  invitation        Invitation     @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  voiceMessages     VoiceMessage[]
+  chatMessages      ChatMessage[]
+  guestPhotos       GuestPhoto[]
+  payments          Payment[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([invitationId, rsvpStatus])
+  @@index([shortUrl])
+  @@map("guests")
+}
+
+model Analytics {
+  id            String     @id @default(uuid())
+  invitationId  String     @map("invitation_id")
+  event         String
+  guestToken    String?    @map("guest_token")
+  userAgent     String?    @map("user_agent")
+  ip            String?
+  metadata      Json?
+  invitation    Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+
+  @@index([invitationId, event])
+  @@map("analytics")
+}
+
+model GuestPhoto {
+  id               String     @id @default(uuid())
+  invitationId     String     @map("invitation_id")
+  guestId          String?    @map("guest_id")
+  photoUrl         String     @map("photo_url")
+  thumbnailUrl     String?    @map("thumbnail_url")
+  caption          String?
+  moderationStatus String     @default("pending") @map("moderation_status")
+  aiTags           String[]   @default([]) @map("ai_tags")
+  likes            Int        @default(0)
+  invitation       Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  guest            Guest?     @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  createdAt        DateTime   @default(now())
+
+  @@index([invitationId, moderationStatus])
+  @@map("guest_photos")
+}
+
+model VoiceMessage {
+  id               String     @id @default(uuid())
+  guestId          String     @map("guest_id")
+  invitationId     String     @map("invitation_id")
+  type             String
+  fileUrl          String     @map("file_url")
+  duration         Int
+  transcript       String?
+  isPublic         Boolean    @default(false) @map("is_public")
+  moderationStatus String     @default("pending") @map("moderation_status")
+  guest            Guest      @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  invitation       Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime   @default(now())
+
+  @@index([invitationId, moderationStatus])
+  @@map("voice_messages")
+}
+
+model Livestream {
+  id             String        @id @default(uuid())
+  invitationId   String        @map("invitation_id")
+  provider       String        @default("mux")
+  streamKey      String?       @map("stream_key")
+  playbackId     String?       @map("playback_id")
+  status         String        @default("scheduled")
+  scheduledAt    DateTime?     @map("scheduled_at")
+  startedAt      DateTime?     @map("started_at")
+  endedAt        DateTime?     @map("ended_at")
+  viewerCount    Int           @default(0) @map("viewer_count")
+  chatEnabled    Boolean       @default(true) @map("chat_enabled")
+  invitation     Invitation    @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  chatMessages   ChatMessage[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("livestreams")
+}
+
+model ChatMessage {
+  id             String      @id @default(uuid())
+  livestreamId   String      @map("livestream_id")
+  guestId        String      @map("guest_id")
+  message        String
+  type           String      @default("text")
+  livestream     Livestream  @relation(fields: [livestreamId], references: [id], onDelete: Cascade)
+  guest          Guest       @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  createdAt      DateTime    @default(now())
+
+  @@index([livestreamId, createdAt])
+  @@map("chat_messages")
+}
+
+model Payment {
+  id            String      @id @default(uuid())
+  userId        String      @map("user_id")
+  guestId       String?     @map("guest_id")
+  invitationId  String?     @map("invitation_id")
+  type          String
+  amount        Int
+  currency      String      @default("VND")
+  status        String      @default("pending")
+  provider      String
+  providerId    String?     @map("provider_id")
+  metadata      Json?
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  guest         Guest?      @relation(fields: [guestId], references: [id], onDelete: SetNull)
+  invitation    Invitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+
+  @@index([userId, status])
+  @@index([guestId])
+  @@index([invitationId])
+  @@map("payments")
+}
+
+model AISuggestion {
+  id           String     @id @default(uuid())
+  invitationId String     @map("invitation_id")
+  type         String
+  input        Json
+  suggestions  Json
+  selected     Json?
+  confidence   Float?
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@index([invitationId, type])
+  @@map("ai_suggestions")
+}

@@ -1,0 +1,19 @@
+node_modules
+*.local
+.env
+.env.*
+!.env.example
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+.gstack/
+
+# Local Netlify folder
+.netlify
