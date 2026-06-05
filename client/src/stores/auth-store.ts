@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   fetchMe: async () => {
     try {
       const res = await api.get('/auth/me');
-      set({ user: res.data });
+      set({ user: res.data.user });
     } catch {
       // Token invalid, logout
       localStorage.removeItem('token');

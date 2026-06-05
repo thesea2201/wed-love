@@ -9,6 +9,8 @@
   columns: 2 | 3 | 4;         // Số cột grid
   lightbox: boolean;           // Click để phóng to
   allowGuestUpload: boolean;   // (Future) Khách upload ảnh
+  images?: string[];           // Subset ảnh hiển thị, chọn từ Media Library
+                               // Rỗng/undefined = hiện toàn bộ media pool
 }
 ```
 
@@ -16,7 +18,7 @@
 
 | Field | Nguồn | Bắt buộc |
 |-------|-------|----------|
-| gallery | `invitation.gallery` | Mảng URL ảnh |
+| images | `config.images` (uu tiên) hoặc `invitation.gallery` (toàn bộ pool) | Từ Media Library |
 
 ## Visual Behavior
 
@@ -39,7 +41,8 @@
 {
   "columns": 3,
   "lightbox": true,
-  "allowGuestUpload": false
+  "allowGuestUpload": false,
+  "images": []
 }
 ```
 

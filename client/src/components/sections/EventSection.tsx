@@ -48,8 +48,8 @@ export default function EventSection({ config, invitation }: SectionProps) {
   const displayEvents = events && events.length > 0 ? events : getDefaultEvents(invitation);
 
   return (
-    <section className="py-16 md:py-24 px-4 bg-secondary">
-      <div className="max-w-5xl mx-auto">
+    <section className="py-12 md:py-24 px-3 md:px-4 bg-secondary">
+      <div className="w-full mx-auto">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -60,8 +60,8 @@ export default function EventSection({ config, invitation }: SectionProps) {
         </motion.h2>
 
         {/* Events Grid - Responsive */}
-        <div className={`grid gap-4 md:gap-6 ${
-          displayEvents.length === 1 ? 'max-w-xl mx-auto' :
+        <div className={`grid gap-4 md:gap-6 w-full ${
+          displayEvents.length === 1 ? 'grid-cols-1' :
           displayEvents.length === 2 ? 'md:grid-cols-2' :
           'md:grid-cols-3'
         }`}>
@@ -98,7 +98,7 @@ export default function EventSection({ config, invitation }: SectionProps) {
                   >
                     <MapPin className="w-4 h-4 mt-0.5" />
                   </div>
-                  <div>
+                  <div className="text-left">
                     <p className="font-medium text-gray-900 text-sm md:text-base">{event.venue}</p>
                     {event.address && (
                       <p className="text-xs md:text-sm text-gray-500 mt-0.5">{event.address}</p>

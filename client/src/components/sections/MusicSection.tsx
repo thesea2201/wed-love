@@ -30,14 +30,14 @@ export default function MusicSection({ config, invitation }: SectionProps) {
   if (!musicUrl) return null;
 
   return (
-    <section className="py-12 px-4 bg-secondary">
+    <section className="py-12 md:py-24 px-3 md:px-4 bg-secondary">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="max-w-md mx-auto text-center"
+        className="w-full mx-auto text-center"
       >
-        <h3 className="font-display text-2xl mb-4">Nhạc Nền</h3>
+        <h3 className="font-display text-2xl md:text-4xl mb-4 md:mb-6">Nhạc Nền</h3>
 
         <audio
           ref={audioRef}

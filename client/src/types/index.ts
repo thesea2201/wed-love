@@ -31,6 +31,7 @@ export interface HeroConfig {
 export interface StoryConfig {
   layout: 'split' | 'full' | 'timeline';
   imagePosition: 'left' | 'right' | 'top';
+  imageUrl?: string;
 }
 
 export interface EventItem {
@@ -58,18 +59,22 @@ export interface GalleryConfig {
   columns: 2 | 3 | 4;
   lightbox: boolean;
   allowGuestUpload: boolean;
+  images?: string[];
 }
 
 export interface GiftConfig {
-  methods: ('momo' | 'zalopay' | 'bank_transfer' | 'stripe')[];
-  showBankQR: boolean;
   customMessage: string;
   showBrideSide: boolean;
   showGroomSide: boolean;
-  brideQR: string;
-  groomQR: string;
-  brideBankInfo: string;
-  groomBankInfo: string;
+  // Bride bank info
+  brideBankId: string;
+  brideAccountNumber: string;
+  brideAccountName: string;
+  // Groom bank info
+  groomBankId: string;
+  groomAccountNumber: string;
+  groomAccountName: string;
+  displayMode?: 'inline' | 'modal';
 }
 
 export interface MusicConfig {

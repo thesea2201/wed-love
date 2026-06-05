@@ -8,7 +8,7 @@
 {
   showSeconds: boolean;                    // Hiển thị giây
   showLabels: boolean;                     // Hiển thị nhãn "Ngày", "Giờ"...
-  style: 'simple' | 'boxed' | 'elegant';  // Kiểu hiển thị
+  style: 'simple' | 'boxed' | 'elegant';  // Kiểu hiển thị — ⚠️ chưa có selector trong editor
 }
 ```
 
@@ -28,7 +28,7 @@
 - Vietnamese labels: "Ngày", "Giờ", "Phút", "Giây"
 - Giá trị zero-padded: "09", "03"
 - Update realtime mỗi giây
-- Background: `bg-gray-900 text-white`
+- Background: `bg-white` với colored boxes (primaryColor)
 - Text phụ: *"đến ngày trọng đại của {groomName} & {brideName}"*
 
 ### Ngày cưới đã đến

@@ -27,7 +27,9 @@ docs/design/
 │   ├── music.md            ← Music section spec
 │   └── gift.md             ← Gift section spec
 │
-└── 05-accessibility.md     ← A11y requirements
+├── 05-accessibility.md     ← A11y requirements + Roadmap
+├── 06-media-library.md     ← Media Library (WordPress-style central media pool)
+└── REVIEW-REPORT.md        ← Audit report (auto-generated)
 ```
 
 ## Quy trình làm việc
@@ -36,6 +38,7 @@ docs/design/
 2. **Sửa layout section** → Đọc `02-layout-rules.md` trước, sửa spec trong `sections/*.md`, rồi code
 3. **Thêm section mới** → Tạo file `sections/<name>.md` theo format chuẩn
 4. **Thay đổi data model** → Cập nhật `01-data-model.md` trước
+5. **Thêm ảnh cho section** → Dùng Media Library picker, đọc `06-media-library.md`
 
 ## Nguyên tắc
 

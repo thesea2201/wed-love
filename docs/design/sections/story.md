@@ -6,8 +6,9 @@
 
 ```typescript
 {
-  layout: 'split' | 'full' | 'timeline';
+  layout: 'split' | 'full'; // 'timeline' là Future — chưa implement
   imagePosition: 'left' | 'right' | 'top';
+  imageUrl?: string;         // Ảnh minh họa, chọn từ Media Library (xem 06-media-library.md)
 }
 ```
 
@@ -16,13 +17,13 @@
 | Field | Nguồn | Bắt buộc |
 |-------|-------|----------|
 | story | `invitation.story` | Có fallback placeholder |
-| photo | `invitation.gallery[0]` | Ảnh đầu tiên trong gallery |
+| photo | `config.imageUrl` | Chọn từ Media Library. Fallback: `gallery[0]` → Unsplash |
 
 ## Visual Behavior
 
 - **Split layout:** 2 cột (ảnh | text) hoặc (text | ảnh) tùy `imagePosition`
 - **Full layout:** 1 cột, centered
-- **Timeline layout:** (Future) Vertical timeline với milestones
+- **Timeline layout:** (Future — chưa implement)
 - Text render paragraphs qua `\n`
 - Fallback placeholder nếu story trống: *"Câu chuyện tình yêu của chúng tôi..."*
 
@@ -44,7 +45,8 @@
 ```json
 {
   "layout": "split",
-  "imagePosition": "left"
+  "imagePosition": "left",
+  "imageUrl": null
 }
 ```
 

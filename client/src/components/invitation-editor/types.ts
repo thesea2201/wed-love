@@ -1,6 +1,6 @@
 import type { InvitationData, SectionConfig } from '../../types';
 
-export type EditorTab = 'content' | 'design' | 'sections';
+export type EditorTab = 'content' | 'design' | 'sections' | 'photos';
 
 export interface EditorState {
   original: InvitationData | null;
@@ -24,6 +24,8 @@ export interface DesignTabProps {
 export interface SectionsTabProps {
   sections: SectionConfig[];
   onChange: (sections: SectionConfig[]) => void;
+  gallery?: string[];
+  onGalleryChange?: (gallery: string[]) => void;
 }
 
 export interface PreviewPaneProps {

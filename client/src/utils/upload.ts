@@ -1,28 +1,46 @@
 import api from './api';
 
-export async function uploadFile(file: File): Promise<{ key: string; publicUrl: string }> {
-  const res = await api.post('/upload/presigned-url', {
-    fileName: file.name,
-    contentType: file.type,
+export interface UploadResult {
+  key: string;
+  publicUrl: string;
+  thumbnailUrl: string;
+  size: number;
+}
+
+export async function uploadFile(file: File, onProgress?: (progress: number) => void): Promise<UploadResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await api.post('/upload/file', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (progressEvent) => {
+      if (onProgress && progressEvent.total) {
+        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        onProgress(progress);
+      }
+    },
   });
 
-  const { uploadUrl, key, publicUrl } = res.data;
+  return res.data;
+}
 
-  // Upload the file to the returned URL
-  if (uploadUrl.startsWith('/api/')) {
-    // Local mode: upload to our server
-    const uploadRes = await api.post('/upload/file', file, {
-      headers: { 'Content-Type': file.type },
-    });
-    return { key: uploadRes.data.key, publicUrl: uploadRes.data.publicUrl };
-  }
+export async function uploadFiles(
+  files: File[],
+  onProgress?: (index: number, progress: number) => void
+): Promise<UploadResult[]> {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('files', file));
 
-  // S3 mode: upload directly to presigned URL
-  await fetch(uploadUrl, {
-    method: 'PUT',
-    body: file,
-    headers: { 'Content-Type': file.type },
+  const res = await api.post('/upload/files', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (progressEvent) => {
+      if (onProgress && progressEvent.total) {
+        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        // Distribute overall progress across files roughly
+        files.forEach((_, i) => onProgress(i, Math.min(progress, 100)));
+      }
+    },
   });
 
-  return { key, publicUrl };
+  return res.data.results;
 }
