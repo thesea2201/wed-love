@@ -1,6 +1,6 @@
 # WedLove - Progress Tracker
 
-> Last updated: 2026-06-06 19:00 UTC+7
+> Last updated: 2026-06-06 21:55 UTC+7
 
 ## 🏗️ Architecture
 
@@ -155,7 +155,15 @@ cd server && npx tsx prisma/seed.ts
 | Testing & Monitoring | Dev | `docs/plan/06-testing-monitoring.md` |
 
 ## 🎯 Next Priority (Phase 2)
-1. **More templates** — Only "cinematic" now, add elegant/modern/minimal/vintage
-2. **Music player** — Background music with autoplay/fade on invitation page
-3. **Gallery section** — Photo grid with lightbox on invitation page
-4. **Wire countdown timer** — Component exists in `sections/CountdownSection.tsx`, needs real `weddingDate` data from invitation
+1. **Music player** — Background music with autoplay/fade on invitation page
+2. **Gallery section** — Photo grid with lightbox on invitation page
+3. **Wire countdown timer** — Component exists in `sections/CountdownSection.tsx`, needs real `weddingDate` data from invitation
+
+## 🔄 Current PR Queue
+
+- **PR #3** `feat/template-polish` → `main` — Phase 2.3 polish (fonts + live template change + 5 new server tests). 1 commit, +55/-11. Server 81/81, client 59/59, server tsc clean. **Needs review + merge** before picking up Phase 2.4.
+- PR #1 (refactor) and PR #2 (QR per guest) already merged to main.
+
+## 📝 Follow-up Debt (post-merge, not blocking)
+
+6 from PR #1 review + 8 from PR #2 review + 19 client test typecheck errors in `auth-store.test.ts` / `invitation-store.test.ts` / `api.test.ts`. Details in PR #3 description and old PR comments.
