@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
+import ImportGuestsModal from './guest-import/ImportGuestsModal';
 
 interface Guest {
   id: string;
@@ -19,8 +20,10 @@ export default function GuestList({ invitationId }: Props) {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [newGuest, setNewGuest] = useState({ name: '', email: '', phone: '', customMessage: '' });
   const [adding, setAdding] = useState(false);
+  const [importMessage, setImportMessage] = useState<string>('');
 
   useEffect(() => {
     const fetchGuests = async () => {
@@ -71,11 +74,26 @@ export default function GuestList({ invitationId }: Props) {
     }
   };
 
+  const handleImportSuccess = async (importedCount: number) => {
+    setShowImportModal(false);
+    setImportMessage(`Đã import ${importedCount} khách thành công`);
+    try {
+      const res = await api.get('/guests', { params: { invitationId } });
+      setGuests(res.data.guests);
+    } catch (err) {
+      console.error('Failed to reload guests:', err);
+    }
+    setTimeout(() => setImportMessage(''), 4000);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm">
       <div className="p-4 sm:p-6 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h3 className="text-lg font-semibold">Danh sách khách ({guests.length})</h3>
         <div className="flex gap-2 sm:gap-3">
+          <button onClick={() => setShowImportModal(true)} className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 whitespace-nowrap">
+            📤 Import CSV
+          </button>
           <button onClick={handleExport} className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 whitespace-nowrap">
             📥 Export
           </button>
@@ -87,6 +105,12 @@ export default function GuestList({ invitationId }: Props) {
           </button>
         </div>
       </div>
+
+      {importMessage && (
+        <div className="mx-4 sm:mx-6 mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+          ✓ {importMessage}
+        </div>
+      )}
 
       {loading ? (
         <div className="p-8 text-center text-gray-400">Loading guests...</div>
