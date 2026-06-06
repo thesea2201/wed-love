@@ -2,11 +2,26 @@ import express from 'express';
 import { prisma } from '../config/database';
 import { authenticate } from '../middleware/auth';
 import crypto from 'crypto';
+import QRCode from 'qrcode';
 
 const router = express.Router();
 
 const generateGuestToken = (): string => {
   return crypto.randomBytes(16).toString('hex');
+};
+
+const buildGuestInviteUrl = (
+  req: express.Request,
+  invitation: { slug: string },
+  token: string,
+): string => {
+  // Prefer explicit public base URL from env, fall back to request host
+  const hostHeader = req.get('host');
+  const host = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
+  const baseUrl =
+    process.env.PUBLIC_BASE_URL ||
+    `${req.protocol}://${host || 'localhost'}`;
+  return `${baseUrl.replace(/\/$/, '')}/invitation/${invitation.slug}?token=${token}`;
 };
 
 // Add single guest
@@ -159,6 +174,124 @@ router.post('/:token/rsvp', async (req, res, next) => {
         rsvpStatus: updated.rsvpStatus,
         rsvpAttendees: updated.rsvpAttendees,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// QR code info (URL + stats) for a single guest
+router.get('/:id/qr-info', authenticate, async (req, res, next) => {
+  try {
+    const id = req.params.id as string;
+    const userId = (req as any).userId;
+
+    const guest = await prisma.guest.findUnique({
+      where: { id },
+      include: { invitation: { select: { userId: true, slug: true } } },
+    });
+    if (!guest) {
+      return res.status(404).json({ error: 'Guest not found' });
+    }
+    const guestAny = guest as any;
+    if (guestAny.invitation.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const url = buildGuestInviteUrl(req, guestAny.invitation, guest.token);
+
+    res.json({
+      guestId: guest.id,
+      guestName: guest.name,
+      url,
+      pngUrl: `/guests/${guest.id}/qr?format=png`,
+      svgUrl: `/guests/${guest.id}/qr?format=svg`,
+      viewedAt: guest.viewedAt,
+      viewCount: guest.viewCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// QR code image (PNG by default, optional SVG)
+router.get('/:id/qr', authenticate, async (req, res, next) => {
+  try {
+    const id = req.params.id as string;
+    const userId = (req as any).userId;
+    const format = (req.query.format as string) === 'svg' ? 'svg' : 'png';
+
+    const guest = await prisma.guest.findUnique({
+      where: { id },
+      include: { invitation: { select: { userId: true, slug: true } } },
+    });
+    if (!guest) {
+      return res.status(404).json({ error: 'Guest not found' });
+    }
+    const guestAny = guest as any;
+    if (guestAny.invitation.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const url = buildGuestInviteUrl(req, guestAny.invitation, guest.token);
+
+    if (format === 'svg') {
+      const svg = await QRCode.toString(url, {
+        type: 'svg',
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 512,
+      });
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      return res.send(svg);
+    }
+
+    const png = await QRCode.toBuffer(url, {
+      type: 'png',
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      width: 512,
+    });
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename="qr-${guest.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.png"`,
+    );
+    return res.send(png);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Regenerate a guest's token (invalidates old links)
+router.post('/:id/regenerate-token', authenticate, async (req, res, next) => {
+  try {
+    const id = req.params.id as string;
+    const userId = (req as any).userId;
+
+    const guest = await prisma.guest.findUnique({
+      where: { id },
+      include: { invitation: { select: { userId: true } } },
+    });
+    if (!guest) {
+      return res.status(404).json({ error: 'Guest not found' });
+    }
+    const guestAny = guest as any;
+    if (guestAny.invitation.userId !== userId) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const updated = await prisma.guest.update({
+      where: { id },
+      data: { token: generateGuestToken() },
+    });
+
+    res.json({
+      guestId: updated.id,
+      token: updated.token,
+      url: buildGuestInviteUrl(req, guestAny.invitation, updated.token),
     });
   } catch (error) {
     next(error);

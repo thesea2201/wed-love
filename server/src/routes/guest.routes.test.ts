@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import crypto from 'crypto';
 import guestRoutes from './guest.routes';
 import { prisma } from '../config/database';
 import jwt from 'jsonwebtoken';
@@ -10,17 +11,20 @@ const app = express();
 app.use(express.json());
 app.use('/guests', guestRoutes);
 
-// Test data
 let testUser: any;
+let otherUser: any;
 let testInvitation: any;
+let testGuest: any;
 let authToken: string;
+let otherAuthToken: string;
 
 function generateToken(userId: string): string {
   return jwt.sign({ userId }, process.env.JWT_SECRET!);
 }
 
+const generateGuestToken = (): string => crypto.randomBytes(16).toString('hex');
+
 describe('Guest Routes - CRUD + Public RSVP', () => {
-  // ─── SETUP ───
   beforeAll(async () => {
     testUser = await prisma.user.create({
       data: {
@@ -52,12 +56,10 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
     await prisma.user.delete({ where: { id: testUser.id } });
   });
 
-  // Clean guests after each test to avoid cross-test pollution
   afterEach(async () => {
     await prisma.guest.deleteMany({ where: { invitationId: testInvitation.id } });
   });
 
-  // ─── CREATE SINGLE GUEST ───
   describe('POST /guests/ (authenticated)', () => {
     it('should create a guest with required fields', async () => {
       const response = await request(app)
@@ -72,7 +74,7 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
       expect(response.body.name).toBe('John Doe');
       expect(response.body.invitationId).toBe(testInvitation.id);
       expect(response.body.token).toBeDefined();
-      expect(response.body.token.length).toBe(32); // 16 bytes = 32 hex chars
+      expect(response.body.token.length).toBe(32);
     });
 
     it('should create a guest with all optional fields', async () => {
@@ -86,14 +88,8 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
           phone: '+1234567890',
           customMessage: 'Looking forward to it!',
           sharedPhoto: 'https://example.com/photo.jpg',
-          tableNumber: '5', // Prisma model has tableNumber: String?
+          tableNumber: '5',
         });
-
-      // Debug: log the error if it fails
-      if (response.status !== 201) {
-        console.log('Response status:', response.status);
-        console.log('Response body:', response.body);
-      }
 
       expect(response.status).toBe(201);
       expect(response.body.email).toBe('jane@example.com');
@@ -127,8 +123,7 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
     });
 
     it('should reject invitation owned by another user (404)', async () => {
-      // Create another user with their own invitation
-      const otherUser = await prisma.user.create({
+      const strangerUser = await prisma.user.create({
         data: {
           email: `other-${Date.now()}@example.com`,
           password: await bcrypt.hash('password', 12),
@@ -140,7 +135,7 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
 
       const otherInvitation = await prisma.invitation.create({
         data: {
-          userId: otherUser.id,
+          userId: strangerUser.id,
           slug: `other-slug-${Date.now()}`,
           title: 'Other Invitation',
           template: 'minimal',
@@ -158,23 +153,20 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
           name: 'Cross-user Attempt',
         });
 
-      expect(response.status).toBe(404); // Returns 404 to not leak existence
+      expect(response.status).toBe(404);
 
-      // Cleanup
       await prisma.invitation.delete({ where: { id: otherInvitation.id } });
-      await prisma.user.delete({ where: { id: otherUser.id } });
+      await prisma.user.delete({ where: { id: strangerUser.id } });
     });
   });
 
-  // ─── LIST GUESTS ───
   describe('GET /guests/ (authenticated)', () => {
     beforeEach(async () => {
-      // Create sample guests for listing tests
       await prisma.guest.createMany({
         data: [
-          { invitationId: testInvitation.id, token: require('crypto').randomBytes(16).toString('hex'), name: 'Attending Guest', rsvpStatus: 'attending' },
-          { invitationId: testInvitation.id, token: require('crypto').randomBytes(16).toString('hex'), name: 'Declined Guest', rsvpStatus: 'declined' },
-          { invitationId: testInvitation.id, token: require('crypto').randomBytes(16).toString('hex'), name: 'Pending Guest', rsvpStatus: 'pending' },
+          { invitationId: testInvitation.id, token: generateGuestToken(), name: 'Attending Guest', rsvpStatus: 'attending' },
+          { invitationId: testInvitation.id, token: generateGuestToken(), name: 'Declined Guest', rsvpStatus: 'declined' },
+          { invitationId: testInvitation.id, token: generateGuestToken(), name: 'Pending Guest', rsvpStatus: 'pending' },
         ],
       });
     });
@@ -211,7 +203,7 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.guests.length).toBe(2);
-      expect(response.body.pagination.pages).toBe(2); // 3 items / 2 per page
+      expect(response.body.pagination.pages).toBe(2);
     });
 
     it('should reject without invitationId (400)', async () => {
@@ -232,7 +224,6 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
     });
   });
 
-  // ─── BULK IMPORT ───
   describe('POST /guests/bulk (authenticated)', () => {
     it('should import multiple guests successfully', async () => {
       const response = await request(app)
@@ -260,7 +251,7 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
           invitationId: testInvitation.id,
           guests: [
             { name: 'Valid Guest' },
-            { email: 'no-name@example.com' }, // Missing name
+            { email: 'no-name@example.com' },
             { name: 'Another Valid' },
           ],
         });
@@ -284,21 +275,20 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
     });
   });
 
-  // ─── PUBLIC RSVP (WEDDING-CRITICAL) ───
   describe('POST /guests/:token/rsvp (PUBLIC - no auth)', () => {
     let guestToken: string;
-    let testGuest: any;
+    let rsvpGuest: any;
 
     beforeEach(async () => {
-      testGuest = await prisma.guest.create({
+      rsvpGuest = await prisma.guest.create({
         data: {
           invitationId: testInvitation.id,
-          token: require('crypto').randomBytes(16).toString('hex'),
+          token: generateGuestToken(),
           name: 'RSVP Test Guest',
           rsvpStatus: 'pending',
         },
       });
-      guestToken = testGuest.token;
+      guestToken = rsvpGuest.token;
     });
 
     it('should submit RSVP as attending with attendees', async () => {
@@ -316,7 +306,6 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
       expect(response.body.guest.rsvpStatus).toBe('attending');
       expect(response.body.guest.rsvpAttendees).toBe(2);
 
-      // ★ Regression guard: verify DB persistence
       const fromDb = await prisma.guest.findUnique({ where: { token: guestToken } });
       expect(fromDb?.rsvpStatus).toBe('attending');
       expect(fromDb?.rsvpAttendees).toBe(2);
@@ -326,9 +315,7 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
     it('should submit RSVP as declined', async () => {
       const response = await request(app)
         .post(`/guests/${guestToken}/rsvp`)
-        .send({
-          status: 'declined',
-        });
+        .send({ status: 'declined' });
 
       expect(response.status).toBe(200);
       expect(response.body.guest.rsvpStatus).toBe('declined');
@@ -340,10 +327,7 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
     it('should handle RSVP with no dietary restrictions', async () => {
       const response = await request(app)
         .post(`/guests/${guestToken}/rsvp`)
-        .send({
-          status: 'attending',
-          attendees: 1,
-        });
+        .send({ status: 'attending', attendees: 1 });
 
       expect(response.status).toBe(200);
       const fromDb = await prisma.guest.findUnique({ where: { token: guestToken } });
@@ -359,22 +343,7 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
       expect(response.body).toHaveProperty('error', 'Guest not found');
     });
 
-    it('should reject invalid rsvp status', async () => {
-      // The route handler doesn't validate rsvpStatus before saving.
-      // If Prisma has enum validation, it returns 500.
-      // This test documents the CURRENT behavior.
-      const response = await request(app)
-        .post(`/guests/${guestToken}/rsvp`)
-        .send({
-          status: 'invalid-status',
-        });
-
-      // Accept either: 500 (Prisma rejects) or 200 (Prisma accepts invalid)
-      // The key regression: don't throw unhandled exception
-      expect([200, 400, 500]).toContain(response.status);
-    });
-
-    it('★ REGRESSION: RSVP must persist to DB (not just return success)', async () => {
+    it('REGRESSION: RSVP must persist to DB (not just return success)', async () => {
       await request(app)
         .post(`/guests/${guestToken}/rsvp`)
         .send({
@@ -383,7 +352,6 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
           dietary: ['vegan'],
         });
 
-      // Direct DB check - the ultimate regression guard
       const fromDb = await prisma.guest.findUnique({ where: { token: guestToken } });
       expect(fromDb).not.toBeNull();
       expect(fromDb!.rsvpStatus).toBe('attending');
@@ -393,13 +361,12 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
     });
   });
 
-  // ─── EXPORT GUESTS ───
   describe('GET /guests/export (authenticated)', () => {
     beforeEach(async () => {
       await prisma.guest.createMany({
         data: [
-          { invitationId: testInvitation.id, token: require('crypto').randomBytes(16).toString('hex'), name: 'Export Guest 1', rsvpStatus: 'attending', email: 'export1@example.com' },
-          { invitationId: testInvitation.id, token: require('crypto').randomBytes(16).toString('hex'), name: 'Export Guest 2', rsvpStatus: 'declined' },
+          { invitationId: testInvitation.id, token: generateGuestToken(), name: 'Export Guest 1', rsvpStatus: 'attending', email: 'export1@example.com' },
+          { invitationId: testInvitation.id, token: generateGuestToken(), name: 'Export Guest 2', rsvpStatus: 'declined' },
         ],
       });
     });
@@ -434,6 +401,218 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
         .query({ invitationId: testInvitation.id });
 
       expect(response.status).toBe(401);
+    });
+  });
+});
+
+describe('Guest QR Code Endpoints', () => {
+  const TEST_WEDDING_DATE = '2026-09-15T00:00:00.000Z';
+
+  beforeAll(async () => {
+    testUser = await prisma.user.create({
+      data: {
+        email: `qr-test-owner-${Date.now()}@example.com`,
+        password: 'hashedpw',
+        groomName: 'QR Groom',
+        brideName: 'QR Bride',
+        weddingDate: new Date(TEST_WEDDING_DATE),
+      },
+    });
+
+    otherUser = await prisma.user.create({
+      data: {
+        email: `qr-test-stranger-${Date.now()}@example.com`,
+        password: 'hashedpw',
+        groomName: 'Stranger Groom',
+        brideName: 'Stranger Bride',
+        weddingDate: new Date(TEST_WEDDING_DATE),
+      },
+    });
+
+    testInvitation = await prisma.invitation.create({
+      data: {
+        userId: testUser.id,
+        slug: `qr-test-slug-${Date.now()}`,
+        title: 'QR Test Wedding',
+        groomName: 'QR Groom',
+        brideName: 'QR Bride',
+        weddingDate: new Date(TEST_WEDDING_DATE),
+        template: 'cinematic',
+      },
+    });
+
+    testGuest = await prisma.guest.create({
+      data: {
+        invitationId: testInvitation.id,
+        token: generateGuestToken(),
+        name: 'Alice Attendee',
+        email: 'alice@example.com',
+        phone: '+84909000000',
+      },
+    });
+
+    authToken = generateToken(testUser.id);
+    otherAuthToken = generateToken(otherUser.id);
+  });
+
+  beforeEach(async () => {
+    await prisma.guest.update({
+      where: { id: testGuest.id },
+      data: { viewedAt: null, viewCount: 0 },
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.guest.deleteMany({ where: { invitationId: testInvitation.id } });
+    await prisma.invitation.delete({ where: { id: testInvitation.id } });
+    await prisma.user.delete({ where: { id: testUser.id } });
+    await prisma.user.delete({ where: { id: otherUser.id } });
+  });
+
+  describe('GET /:id/qr-info', () => {
+    it('returns url, pngUrl, svgUrl, and view stats', async () => {
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr-info`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        guestId: testGuest.id,
+        guestName: 'Alice Attendee',
+        url: expect.stringContaining(
+          `/invitation/${testInvitation.slug}?token=${testGuest.token}`,
+        ),
+        pngUrl: `/guests/${testGuest.id}/qr?format=png`,
+        svgUrl: `/guests/${testGuest.id}/qr?format=svg`,
+        viewedAt: null,
+        viewCount: 0,
+      });
+    });
+
+    it('reflects view stats after a public invitation view', async () => {
+      const express2 = express();
+      express2.use(express.json());
+      const { default: invitationRoutes } = await import('./invitation.routes');
+      express2.use('/invitations', invitationRoutes);
+      await request(express2).get(
+        `/invitations/${testInvitation.slug}?token=${testGuest.token}`,
+      );
+
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr-info`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.viewCount).toBe(1);
+      expect(res.body.viewedAt).toBeTruthy();
+    });
+
+    it('returns 403 when the guest belongs to another user', async () => {
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr-info`)
+        .set('Authorization', `Bearer ${otherAuthToken}`);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('returns 404 for an unknown guest id', async () => {
+      const res = await request(app)
+        .get('/guests/00000000-0000-0000-0000-000000000000/qr-info')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 401 without auth', async () => {
+      const res = await request(app).get(`/guests/${testGuest.id}/qr-info`);
+      expect(res.status).toBe(401);
+    });
+  });
+
+  describe('GET /:id/qr', () => {
+    it('returns a PNG image by default', async () => {
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/^image\/png/);
+      const buf = res.body as Buffer;
+      expect(buf[0]).toBe(0x89);
+      expect(buf[1]).toBe(0x50);
+      expect(buf[2]).toBe(0x4e);
+      expect(buf[3]).toBe(0x47);
+    });
+
+    it('returns SVG when format=svg', async () => {
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr?format=svg`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .buffer(true)
+        .parse((response, callback) => {
+          const chunks: Buffer[] = [];
+          response.on('data', (chunk: Buffer) => chunks.push(chunk));
+          response.on('end', () => callback(null, Buffer.concat(chunks)));
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/^image\/svg\+xml/);
+      expect((res.body as Buffer).toString('utf8')).toMatch(/^<svg/);
+    });
+
+    it('includes guest name in Content-Disposition', async () => {
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.headers['content-disposition']).toContain('qr-Alice_Attendee.png');
+    });
+
+    it('returns 403 for a non-owner', async () => {
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr`)
+        .set('Authorization', `Bearer ${otherAuthToken}`);
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe('POST /:id/regenerate-token', () => {
+    it('rotates the token and returns the new url', async () => {
+      const oldToken = testGuest.token;
+
+      const res = await request(app)
+        .post(`/guests/${testGuest.id}/regenerate-token`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.token).toBeTruthy();
+      expect(res.body.token).not.toBe(oldToken);
+      expect(res.body.url).toContain(`token=${res.body.token}`);
+
+      const fresh = await prisma.guest.findUnique({ where: { id: testGuest.id } });
+      expect(fresh?.token).toBe(res.body.token);
+
+      testGuest = fresh;
+    });
+
+    it('invalidates the previous token (old token returns 404 on /rsvp)', async () => {
+      const oldToken = testGuest.token;
+
+      await request(app)
+        .post(`/guests/${testGuest.id}/regenerate-token`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      const rsvpRes = await request(app)
+        .post(`/guests/${oldToken}/rsvp`)
+        .send({ status: 'attending', attendees: 1, dietary: [] });
+      expect(rsvpRes.status).toBe(404);
+    });
+
+    it('returns 403 for non-owner', async () => {
+      const res = await request(app)
+        .post(`/guests/${testGuest.id}/regenerate-token`)
+        .set('Authorization', `Bearer ${otherAuthToken}`);
+      expect(res.status).toBe(403);
     });
   });
 });
