@@ -156,13 +156,13 @@ cd server && npx tsx prisma/seed.ts
 
 ## 🎯 Next Priority (Phase 2)
 1. ~~**Music player** — Background music with autoplay/fade on invitation page~~ — ✅ Done in PR #4
-2. **Gallery section** — Photo grid with lightbox on invitation page
+2. ~~**Gallery section** — Photo grid with lightbox on invitation page~~ — ✅ Done in PR #5
 3. **Wire countdown timer** — Component exists in `sections/CountdownSection.tsx`, needs real `weddingDate` data from invitation
 
 ## 🔄 Current PR Queue
 
-- **PR #4** `feat/music-player` → `main` — Phase 2.4 music player. Floating play/mute widget bottom-right, autoplay with first-interaction retry, 2s fade-in. Editor: URL input + autoplay + fade-in toggles in DesignTab. 1 commit, +~190/-~25. Client 64/64 (added 5 MusicSection tests), server 81/81, server tsc clean. Client tsc still 19 pre-existing errors (same 3 test files).
-- PR #3 (template polish) already merged to main.
+- **PR #5** `feat/gallery-polish` → `main` — Phase 2.5 gallery lightbox polish. Full lightbox with prev/next nav, keyboard (Esc/arrows), touch swipe, image counter, framer-motion enter/exit, body scroll lock, adjacent image preload. +8 GallerySection tests. Client 72/72, server 81/81, server tsc clean. Client tsc still 19 pre-existing errors.
+- PR #4 (music player) and PR #3 (template polish) already merged to main.
 
 ## 📝 Follow-up Debt (post-merge, not blocking)
 
