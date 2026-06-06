@@ -1,6 +1,6 @@
 # WedLove - Progress Tracker
 
-> Last updated: 2026-06-06 17:10 UTC+7
+> Last updated: 2026-06-06 19:00 UTC+7
 
 ## 🏗️ Architecture
 
@@ -35,7 +35,7 @@
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 2.1 | Excel/CSV guest import | ✅ DONE | UI shipped: 4-step wizard (upload → map → preview → dedupe). See `client/src/components/guest-import/` |
-| 2.2 | QR code per guest | ❌ TODO | Generate unique QR linking to invitation+token |
+| 2.2 | QR code per guest | ✅ DONE | Per-guest QR PNG/SVG via `qrcode` lib. Track `viewedAt` + `viewCount` on first public view. Token can be rotated to invalidate leaked links. |
 | 2.3 | More templates (5 total) | ❌ TODO | Only "cinematic" now, need elegant/modern/minimal/vintage |
 | 2.4 | Music player on invitation | ❌ TODO | Background music with autoplay/fade |
 | 2.5 | Gallery section | ❌ TODO | Photo grid with lightbox |
@@ -70,6 +70,7 @@
 | `server/src/routes/invitation.routes.ts` | CRUD, publish, duplicate, analytics |
 | `server/src/routes/guest.routes.ts` | Add, list, bulk, RSVP, export |
 | `server/src/routes/upload.routes.ts` | Presigned URL (mock) |
+| `server/src/routes/guest.routes.ts` | Add, list, bulk, RSVP, export, QR (`/:id/qr`, `/:id/qr-info`, `/:id/regenerate-token`) |
 | `server/prisma/schema.prisma` | DB schema: User, Invitation, Guest, Analytics |
 | `server/prisma/seed.ts` | Demo data seeder |
 | `server/.env` | DATABASE_URL, JWT_SECRET, etc. |
@@ -154,8 +155,7 @@ cd server && npx tsx prisma/seed.ts
 | Testing & Monitoring | Dev | `docs/plan/06-testing-monitoring.md` |
 
 ## 🎯 Next Priority (Phase 2)
-1. **QR code per guest** — Generate unique QR linking to invitation+token
-2. **More templates** — Only "cinematic" now, add elegant/modern/minimal/vintage
-3. **Music player** — Background music with autoplay/fade on invitation page
-4. **Gallery section** — Photo grid with lightbox on invitation page
-5. **Wire countdown timer** — Component exists in `sections/CountdownSection.tsx`, needs real `weddingDate` data from invitation
+1. **More templates** — Only "cinematic" now, add elegant/modern/minimal/vintage
+2. **Music player** — Background music with autoplay/fade on invitation page
+3. **Gallery section** — Photo grid with lightbox on invitation page
+4. **Wire countdown timer** — Component exists in `sections/CountdownSection.tsx`, needs real `weddingDate` data from invitation
