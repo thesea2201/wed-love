@@ -36,7 +36,7 @@
 |---|------|--------|-------|
 | 2.1 | Excel/CSV guest import | ✅ DONE | UI shipped: 4-step wizard (upload → map → preview → dedupe). See `client/src/components/guest-import/` |
 | 2.2 | QR code per guest | ✅ DONE | Per-guest QR PNG/SVG via `qrcode` lib. Track `viewedAt` + `viewCount` on first public view. Token can be rotated to invalidate leaked links. |
-| 2.3 | More templates (5 total) | ❌ TODO | Only "cinematic" now, need elegant/modern/minimal/vintage |
+| 2.3 | More templates (5 total) | ✅ DONE | 5 templates (cinematic, elegant, modern, minimal, vintage) with distinct section composition, colors, fonts. Server presets + admin picker wired. Live template change updates sections instantly. Fonts loaded. |
 | 2.4 | Music player on invitation | ❌ TODO | Background music with autoplay/fade |
 | 2.5 | Gallery section | ❌ TODO | Photo grid with lightbox |
 | 2.6 | Countdown timer | ❌ TODO | Component exists but not connected to real data |

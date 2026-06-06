@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateSections } from './section-presets';
+import { validateSections, getTemplatePreset } from './section-presets';
 
 describe('validateSections', () => {
   describe('valid section arrays', () => {
@@ -231,5 +231,48 @@ describe('validateSections', () => {
       expect(result.errors).toContain('Duplicate section id: s1');
       expect(result.errors).toContain('Duplicate section order: 0');
     });
+  });
+});
+
+describe('getTemplatePreset', () => {
+  const TEMPLATE_IDS = ['cinematic', 'elegant', 'modern', 'minimal', 'vintage'] as const;
+
+  it('should return a non-empty array for every known template', () => {
+    for (const id of TEMPLATE_IDS) {
+      const sections = getTemplatePreset(id);
+      expect(Array.isArray(sections)).toBe(true);
+      expect(sections.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('should always lead with a visible hero section', () => {
+    for (const id of TEMPLATE_IDS) {
+      const sections = getTemplatePreset(id);
+      expect(sections[0].type).toBe('hero');
+      expect(sections[0].order).toBe(0);
+      expect(sections[0].visible).toBe(true);
+    }
+  });
+
+  it('should fall back to cinematic for unknown template ids', () => {
+    const fallback = getTemplatePreset('nonexistent-template');
+    const cinematic = getTemplatePreset('cinematic');
+    expect(fallback).toEqual(cinematic);
+  });
+
+  it('should return a distinct section composition per template', () => {
+    const signatures = TEMPLATE_IDS.map((id) =>
+      getTemplatePreset(id).map((s) => s.type).join('|')
+    );
+    const unique = new Set(signatures);
+    expect(unique.size).toBe(TEMPLATE_IDS.length);
+  });
+
+  it('should produce configs that pass validateSections', () => {
+    for (const id of TEMPLATE_IDS) {
+      const sections = getTemplatePreset(id);
+      const result = validateSections(sections);
+      expect(result.valid, `Template ${id} should validate, got errors: ${result.errors.join(', ')}`).toBe(true);
+    }
   });
 });
