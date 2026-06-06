@@ -157,12 +157,12 @@ cd server && npx tsx prisma/seed.ts
 ## 🎯 Next Priority (Phase 2)
 1. ~~**Music player** — Background music with autoplay/fade on invitation page~~ — ✅ Done in PR #4
 2. ~~**Gallery section** — Photo grid with lightbox on invitation page~~ — ✅ Done in PR #5
-3. **Wire countdown timer** — Component exists in `sections/CountdownSection.tsx`, needs real `weddingDate` data from invitation
+3. ~~**Wire countdown timer** — Component exists in `sections/CountdownSection.tsx`, needs real `weddingDate` data from invitation~~ — ✅ Done in PR #6 (data was already wired via `SectionRenderer`, locked in with 3 tests)
 
 ## 🔄 Current PR Queue
 
-- **PR #5** `feat/gallery-polish` → `main` — Phase 2.5 gallery lightbox polish. Full lightbox with prev/next nav, keyboard (Esc/arrows), touch swipe, image counter, framer-motion enter/exit, body scroll lock, adjacent image preload. +8 GallerySection tests. Client 72/72, server 81/81, server tsc clean. Client tsc still 19 pre-existing errors.
-- PR #4 (music player) and PR #3 (template polish) already merged to main.
+- PR #4 (music), PR #5 (gallery), PR #6 (countdown test) already merged to main.
+- Phase 2 frontend tasks done. Remaining is cleanup debt: 19 client tsc errors in `auth-store.test.ts` / `invitation-store.test.ts` / `api.test.ts` (vitest `mockResolvedValue` typing + undefined interceptor handlers).
 
 ## 📝 Follow-up Debt (post-merge, not blocking)
 
