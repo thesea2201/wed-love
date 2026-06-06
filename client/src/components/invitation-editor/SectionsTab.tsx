@@ -21,7 +21,7 @@ const DEFAULT_CONFIGS: Record<string, SectionTypeConfig['config']> = {
   gallery: { columns: 3, lightbox: true, allowGuestUpload: false },
   countdown: { showSeconds: true, showLabels: true, style: 'boxed' },
   map: { provider: 'google', showDirections: true },
-  music: { autoplay: false, fadeIn: true, showControls: true },
+  music: { showControls: true },
   gift: {
     customMessage: '',
     showBrideSide: true,

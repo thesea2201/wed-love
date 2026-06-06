@@ -144,6 +144,59 @@ export default function DesignTab({ draft, onChange }: DesignTabProps) {
           Ảnh bìa hiển thị ở hero section. Khuyến nghị kích thước 1920x1080px hoặc lớn hơn.
         </p>
       </div>
+
+      {/* Background Music */}
+      <div className="bg-white rounded-xl p-6 shadow-sm">
+        <h3 className="font-semibold mb-4 text-lg">Nhạc nền</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-600 mb-2">
+              Link nhạc (URL .mp3 / .m4a)
+            </label>
+            <input
+              type="url"
+              value={draft.musicUrl || ''}
+              onChange={(e) => onChange({ musicUrl: e.target.value || null })}
+              placeholder="https://example.com/bai-hat-cuoi.mp3"
+              className="w-full px-3 py-2 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Dán link trực tiếp đến file nhạc (mp3, m4a, wav). Để trống nếu không dùng nhạc nền.
+            </p>
+            {draft.musicUrl && (
+              <audio src={draft.musicUrl} controls preload="none" className="w-full mt-3" />
+            )}
+          </div>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!draft.musicAutoplay}
+              onChange={(e) => onChange({ musicAutoplay: e.target.checked })}
+              className="w-4 h-4 mt-1"
+            />
+            <div>
+              <div className="font-medium text-sm">Tự động phát khi mở thiệp</div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                Trình duyệt có thể chặn — khách cần nhấn tương tác trước. Nút phát sẽ hiện ở góc dưới phải.
+              </div>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!draft.musicFadeIn}
+              onChange={(e) => onChange({ musicFadeIn: e.target.checked })}
+              className="w-4 h-4 mt-1"
+            />
+            <div>
+              <div className="font-medium text-sm">Fade in khi bắt đầu</div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                Âm lượng tăng dần từ 0 → 100% trong 2 giây, dễ chịu hơn khi mở thiệp.
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
     </div>
   );
 }
