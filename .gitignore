@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+client/dist/
+server/dist/
+**/*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Server runtime data
+server/uploads/
+server/storage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Test artifacts & scratch
+test-output/
+playwright-report/
+test-results/
+coverage/
+client/test.txt
+client/ts-error.txt
+client/build-output.txt
+client/screenshot.mjs
+client/simple-test.ts
+
+# gstack & tooling metadata
+.gstack/
+.openclaude/
+.gbrain-source
+.gstack-*
+
+# Local research / scratch
+testing/
+competitor-analysis.md

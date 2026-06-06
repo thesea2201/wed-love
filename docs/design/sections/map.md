@@ -6,8 +6,10 @@
 
 ```typescript
 {
-  provider: 'google' | 'openstreetmap';
-  showDirections: boolean;   // Nút "Chỉ đường"
+  embedUrl: string;          // URL iframe embed (Google Maps / OpenStreetMap)
+  // (Future) Chưa implement:
+  // provider: 'google' | 'openstreetmap';
+  // showDirections: boolean;   // Nút "Chỉ đường"
 }
 ```
 
@@ -23,11 +25,10 @@
 
 ## Visual Behavior
 
-- Map embed iframe hoặc static map image
-- Tên và địa chỉ hiển thị trên/dưới map
-- Nút "Chỉ đường" link đến Google Maps (khi `showDirections: true`)
-- Fallback: hiện text địa chỉ nếu không có map URL
-- Hỗ trợ cả share link (mở tab mới) và embedded iframe
+- Map embed iframe (`aspect-video`)
+- Tên và địa chỉ hiển thị bên dưới map
+- Priority: `config.embedUrl` > `invitation.mapUrl` > default embed URL
+- Fallback: sử dụng hardcoded default embed URL
 
 ## Lưu ý layout
 
@@ -39,8 +40,7 @@
 
 ```json
 {
-  "provider": "google",
-  "showDirections": true
+  "embedUrl": ""
 }
 ```
 

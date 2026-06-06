@@ -134,7 +134,9 @@ export default function DesignTab({ draft, onChange }: DesignTabProps) {
         <h3 className="font-semibold mb-4 text-lg">Ảnh bìa</h3>
         <ImageUpload
           currentUrl={draft.coverPhoto || ''}
+          gallery={draft.gallery}
           onUpload={(url) => onChange({ coverPhoto: url })}
+          onAddToGallery={(urls) => onChange({ gallery: [...draft.gallery, ...urls] })}
           label=""
         />
         <p className="text-sm text-gray-500 mt-3">

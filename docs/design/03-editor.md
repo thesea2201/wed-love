@@ -10,7 +10,7 @@ Editor chia 2 panel: **Editor (2/5)** | **Preview (3/5)** trên desktop (`lg:gri
 EditorState {
   original: InvitationData    ← data từ server
   draft: InvitationData       ← đang chỉnh sửa (preview dùng cái này)
-  activeTab: 'content' | 'design' | 'sections'
+  activeTab: 'content' | 'design' | 'sections' | 'photos'
   isSaving / isPublishing / saveError
 }
 ```
@@ -24,7 +24,10 @@ EditorState {
 |-----|-----------|--------|
 | **Content** | Nội dung thiệp | title, subtitle, couple names, date, venue, story |
 | **Design** | Giao diện | template, colors, font, cover photo |
-| **Sections** | Quản lý sections | toggle, reorder, config từng section |
+| **Sections** | Quản lý sections | toggle, reorder, config từng section (có image picker) |
+| **Photos** | **Media Library** — kho ảnh trung tâm | upload, sắp xếp, xóa ảnh, xem usage |
+
+> ℹ️ Chi tiết về Media Library: xem `06-media-library.md`
 
 ## Preview Sync
 

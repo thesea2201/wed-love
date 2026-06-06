@@ -1,24 +1,18 @@
 import { useMutation } from '@tanstack/react-query';
-import api from '../utils/api';
+import { uploadFile, uploadFiles, type UploadResult } from '../utils/upload';
 
-export function usePresignedUrl() {
+export function useUploadFile() {
   return useMutation({
-    mutationFn: async ({ fileName, contentType }: { fileName: string; contentType: string }) => {
-      const res = await api.post('/upload/presigned-url', { fileName, contentType });
-      return res.data;
+    mutationFn: async ({ file, onProgress }: { file: File; onProgress?: (progress: number) => void }) => {
+      return uploadFile(file, onProgress);
     },
   });
 }
 
-export function useUpload() {
+export function useUploadFiles() {
   return useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await api.post('/upload/file', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      return res.data;
+    mutationFn: async ({ files, onProgress }: { files: File[]; onProgress?: (index: number, progress: number) => void }) => {
+      return uploadFiles(files, onProgress);
     },
   });
 }

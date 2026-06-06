@@ -37,7 +37,7 @@ interface EventItem {
 
 - Mỗi event là 1 card với icon + thông tin
 - Icons: Calendar (ngày), Clock (giờ), MapPin (địa điểm)
-- Vietnamese date format: "Thứ Bảy, ngày 15 tháng 6 năm 2026"
+- Vietnamese date format: "Thứ Bảy, ngày 15 tháng 6 năm 2026" — ⚠️ chưa implement trong EventSection, chỉ hiển thị thời gian event
 - Dress code badge hiển thị khi `showDressCode: true` và event có `dressCode`
 - Nút "Chỉ đường" nếu event có `mapUrl`
 - primaryColor áp dụng cho icons

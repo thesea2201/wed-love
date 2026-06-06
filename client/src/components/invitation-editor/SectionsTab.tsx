@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { SectionsTabProps } from './types';
 import type { SectionConfig, SectionType } from '../../types';
 import { SECTION_TYPE_LABELS, SECTION_TYPE_DESCRIPTIONS } from './types';
+import { VIETQR_BANKS } from '../sections/GiftSection';
+import MediaLibraryModal from '../MediaLibraryModal';
 
 interface SectionTypeConfig {
   type: string;
@@ -21,21 +23,22 @@ const DEFAULT_CONFIGS: Record<string, SectionTypeConfig['config']> = {
   map: { provider: 'google', showDirections: true },
   music: { autoplay: false, fadeIn: true, showControls: true },
   gift: {
-    methods: ['bank_transfer'],
-    showBankQR: true,
     customMessage: '',
     showBrideSide: true,
     showGroomSide: true,
-    brideQR: '',
-    groomQR: '',
-    brideBankInfo: '',
-    groomBankInfo: '',
+    brideBankId: '',
+    brideAccountNumber: '',
+    brideAccountName: '',
+    groomBankId: '',
+    groomAccountNumber: '',
+    groomAccountName: '',
+    displayMode: 'inline',
   },
 };
 
 const ALL_SECTION_TYPES = Object.keys(SECTION_TYPE_LABELS) as SectionType[];
 
-export default function SectionsTab({ sections, onChange }: SectionsTabProps) {
+export default function SectionsTab({ sections, onChange, gallery = [], onGalleryChange }: SectionsTabProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [editingSection, setEditingSection] = useState<string | null>(null);
 
@@ -168,6 +171,8 @@ export default function SectionsTab({ sections, onChange }: SectionsTabProps) {
                     type={section.type}
                     config={section.config}
                     onChange={(newConfig) => updateSectionConfig(section.id, newConfig)}
+                    gallery={gallery}
+                    onGalleryChange={onGalleryChange}
                   />
                 </div>
               )}
@@ -251,11 +256,17 @@ function SectionConfigEditor({
   type,
   config,
   onChange,
+  gallery = [],
+  onGalleryChange,
 }: {
   type: string;
   config: Record<string, any>;
   onChange: (config: Record<string, any>) => void;
+  gallery?: string[];
+  onGalleryChange?: (gallery: string[]) => void;
 }) {
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [mediaModalMode, setMediaModalMode] = useState<'single' | 'multi'>('single');
   switch (type) {
     case 'hero':
       return (
@@ -296,6 +307,36 @@ function SectionConfigEditor({
       return (
         <div className="space-y-4">
           <div>
+            <label className="block text-sm text-gray-600 mb-2">Ảnh minh họa</label>
+            {config.imageUrl ? (
+              <div className="flex items-center gap-3">
+                <img src={config.imageUrl} alt="" className="w-16 h-16 object-cover rounded-lg" />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setMediaModalMode('single'); setShowMediaModal(true); }}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Đổi ảnh
+                  </button>
+                  <button
+                    onClick={() => onChange({ imageUrl: undefined })}
+                    className="text-sm text-red-500 hover:underline"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setMediaModalMode('single'); setShowMediaModal(true); }}
+                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors"
+              >
+                Chọn ảnh từ thư viện
+              </button>
+            )}
+            <p className="text-xs text-gray-400 mt-1">Nếu không chọn, sẽ dùng ảnh đầu tiên trong thư viện media.</p>
+          </div>
+          <div>
             <label className="block text-sm text-gray-600 mb-2">Bố cục</label>
             <select
               value={config.layout}
@@ -318,6 +359,14 @@ function SectionConfigEditor({
                 <option value="right">Bên phải</option>
               </select>
             </div>
+          )}
+          {showMediaModal && (
+            <MediaLibraryModal
+              gallery={gallery}
+              onSelect={(url) => { onChange({ imageUrl: url }); setShowMediaModal(false); }}
+              onClose={() => setShowMediaModal(false)}
+              onUploadComplete={onGalleryChange ? (urls) => onGalleryChange([...gallery, ...urls]) : undefined}
+            />
           )}
         </div>
       );
@@ -459,8 +508,53 @@ function SectionConfigEditor({
       );
 
     case 'gallery':
+      const selectedImages = Array.isArray(config.images) ? config.images : [];
       return (
         <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-600 mb-2">Chọn ảnh hiển thị</label>
+            {selectedImages.length > 0 ? (
+              <div>
+                <div className="grid grid-cols-4 gap-2 mb-2">
+                  {selectedImages.map((url: string, i: number) => (
+                    <div key={i} className="aspect-square rounded-lg overflow-hidden relative group">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => onChange({ images: selectedImages.filter((_: string, idx: number) => idx !== i) })}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full text-[8px] opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setMediaModalMode('multi'); setShowMediaModal(true); }}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Sửa lại
+                  </button>
+                  <button
+                    onClick={() => onChange({ images: [] })}
+                    className="text-sm text-gray-500 hover:underline"
+                  >
+                    Hiện tất cả
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-gray-400 mb-2">Đang hiện toàn bộ ảnh trong thư viện ({gallery.length} ảnh)</p>
+                <button
+                  onClick={() => { setMediaModalMode('multi'); setShowMediaModal(true); }}
+                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors"
+                >
+                  Chọn ảnh cụ thể
+                </button>
+              </div>
+            )}
+          </div>
           <div>
             <label className="block text-sm text-gray-600 mb-2">Số cột</label>
             <select
@@ -482,6 +576,17 @@ function SectionConfigEditor({
             />
             <span>Cho phép click để phóng to</span>
           </label>
+          {showMediaModal && (
+            <MediaLibraryModal
+              gallery={gallery}
+              multiple
+              selectedUrls={selectedImages}
+              onSelect={(url) => { onChange({ images: [...selectedImages, url] }); setShowMediaModal(false); }}
+              onSelectMultiple={(urls) => onChange({ images: urls })}
+              onClose={() => setShowMediaModal(false)}
+              onUploadComplete={onGalleryChange ? (urls) => onGalleryChange([...gallery, ...urls]) : undefined}
+            />
+          )}
         </div>
       );
 
@@ -538,6 +643,22 @@ function SectionConfigEditor({
     case 'gift':
       return (
         <div className="space-y-5">
+          {/* Display Mode */}
+          <div>
+            <label className="block text-sm text-gray-600 mb-2">Kiểu hiển thị</label>
+            <select
+              value={config.displayMode || 'inline'}
+              onChange={(e) => onChange({ displayMode: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg text-sm"
+            >
+              <option value="inline">Hiển thị trực tiếp (section)</option>
+              <option value="modal">Nút nổi + popup (tế nhị hơn)</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1">
+              Chọn "Nút nổi" để ẩn thông tin mừng cưới vào icon quà, khách click mới thấy.
+            </p>
+          </div>
+
           {/* Side Selection */}
           <div>
             <label className="block text-sm text-gray-600 mb-3">Hiển thị cho</label>
@@ -569,22 +690,35 @@ function SectionConfigEditor({
               <h4 className="font-medium mb-3 text-pink-700">Thông tin nhà gái</h4>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Thông tin ngân hàng</label>
+                  <label className="block text-xs text-gray-500 mb-1">Ngân hàng</label>
+                  <select
+                    value={config.brideBankId || ''}
+                    onChange={(e) => onChange({ brideBankId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  >
+                    <option value="">Chọn ngân hàng...</option>
+                    {VIETQR_BANKS.map(bank => (
+                      <option key={bank.id} value={bank.id}>{bank.shortName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Số tài khoản</label>
                   <input
                     type="text"
-                    value={config.brideBankInfo || ''}
-                    onChange={(e) => onChange({ brideBankInfo: e.target.value })}
-                    placeholder="VD: MB Bank - 0123456789 - NGUYEN THI A"
+                    value={config.brideAccountNumber || ''}
+                    onChange={(e) => onChange({ brideAccountNumber: e.target.value })}
+                    placeholder="VD: 0123456789"
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Link mã QR</label>
+                  <label className="block text-xs text-gray-500 mb-1">Họ và tên chủ tài khoản</label>
                   <input
                     type="text"
-                    value={config.brideQR || ''}
-                    onChange={(e) => onChange({ brideQR: e.target.value })}
-                    placeholder="URL ảnh mã QR"
+                    value={config.brideAccountName || ''}
+                    onChange={(e) => onChange({ brideAccountName: e.target.value })}
+                    placeholder="VD: NGUYEN THI ANH"
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                   />
                 </div>
@@ -598,38 +732,41 @@ function SectionConfigEditor({
               <h4 className="font-medium mb-3 text-blue-700">Thông tin nhà trai</h4>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Thông tin ngân hàng</label>
+                  <label className="block text-xs text-gray-500 mb-1">Ngân hàng</label>
+                  <select
+                    value={config.groomBankId || ''}
+                    onChange={(e) => onChange({ groomBankId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  >
+                    <option value="">Chọn ngân hàng...</option>
+                    {VIETQR_BANKS.map(bank => (
+                      <option key={bank.id} value={bank.id}>{bank.shortName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Số tài khoản</label>
                   <input
                     type="text"
-                    value={config.groomBankInfo || ''}
-                    onChange={(e) => onChange({ groomBankInfo: e.target.value })}
-                    placeholder="VD: MB Bank - 0987654321 - NGUYEN VAN B"
+                    value={config.groomAccountNumber || ''}
+                    onChange={(e) => onChange({ groomAccountNumber: e.target.value })}
+                    placeholder="VD: 0987654321"
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Link mã QR</label>
+                  <label className="block text-xs text-gray-500 mb-1">Họ và tên chủ tài khoản</label>
                   <input
                     type="text"
-                    value={config.groomQR || ''}
-                    onChange={(e) => onChange({ groomQR: e.target.value })}
-                    placeholder="URL ảnh mã QR"
+                    value={config.groomAccountName || ''}
+                    onChange={(e) => onChange({ groomAccountName: e.target.value })}
+                    placeholder="VD: NGUYEN VAN BINH"
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                   />
                 </div>
               </div>
             </div>
           )}
-
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={config.showBankQR !== false}
-              onChange={(e) => onChange({ showBankQR: e.target.checked })}
-              className="w-4 h-4 rounded"
-            />
-            <span>Hiển thị mã QR ngân hàng</span>
-          </label>
 
           <div>
             <label className="block text-sm text-gray-600 mb-2">Lời nhắn tùy chỉnh</label>

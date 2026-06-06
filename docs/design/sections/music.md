@@ -7,7 +7,7 @@
 ```typescript
 {
   autoplay: boolean;      // Tự phát khi load
-  fadeIn: boolean;         // Hiệu ứng fade in
+  fadeIn: boolean;         // (Future) Hiệu ứng fade in — config có nhưng chưa implement
   showControls: boolean;   // Hiển thị player controls
 }
 ```
@@ -22,17 +22,22 @@
 
 ## Visual Behavior
 
-- Floating music button (góc dưới phải)
-- Play/pause toggle với animation
+- Inline section (không phải floating button)
+- Heading "Nhạc Nền" + play/pause button
+- Play/pause toggle (`▶` / `⏸`)
 - Autoplay cần user interaction trước (browser policy)
-- Optional: "Tap to play music" overlay lần đầu
+- Ẩn section hoàn toàn nếu không có `musicUrl`
+
+### (Future) Floating mode
+- Floating music button ở góc dưới phải (`fixed bottom-4 right-4 z-50`)
 - Volume slider khi `showControls: true`
+- "Tap to play music" overlay lần đầu
 
 ## Lưu ý
 
 - Browser policy: autoplay bị block nếu user chưa interact
 - Cần handle `play()` promise rejection
-- Floating button: `fixed bottom-4 right-4 z-50`
+- Container theo Rule 8: `py-12 md:py-24 px-3 md:px-4`
 
 ## Default Config
 

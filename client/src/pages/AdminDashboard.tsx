@@ -20,7 +20,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    navigate('/');
+    navigate('/login');
   };
 
   if (isLoading) {
@@ -46,11 +46,11 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 py-6">
         {invitations.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-4 flex flex-col sm:flex-row gap-3 sm:items-center">
             <select
               value={selectedInvitationId}
               onChange={(e) => setSelectedInvitationId(e.target.value)}
-              className="px-3 py-2 border rounded-lg bg-white"
+              className="px-3 py-2 border rounded-lg bg-white w-full sm:w-auto"
             >
               {invitations.map((inv) => (
                 <option key={inv.id} value={inv.id}>
@@ -63,7 +63,7 @@ export default function AdminDashboard() {
                 href={`/invitation/${selectedInvitation.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ml-3 text-sm text-primary hover:underline"
+                className="text-sm text-primary hover:underline sm:ml-3 flex items-center gap-1"
               >
                 Xem thiệp →
               </a>
@@ -71,22 +71,24 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
           {([
-            { key: 'editor', label: 'Trình soạn' },
-            { key: 'guests', label: 'Khách mời' },
-            { key: 'analytics', label: 'Thống kê' },
+            { key: 'editor', label: 'Trình soạn', icon: '✏️' },
+            { key: 'guests', label: 'Khách mời', icon: '👥' },
+            { key: 'analytics', label: 'Thống kê', icon: '📊' },
           ] as const).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-lg ${
+              className={`px-4 py-2 rounded-lg whitespace-nowrap flex items-center gap-2 ${
                 activeTab === tab.key
                   ? 'bg-dark text-white'
                   : 'bg-white text-gray-700 hover:bg-gray-100'
               }`}
             >
-              {tab.label}
+              <span className="sm:hidden">{tab.icon}</span>
+              <span className="hidden sm:inline">{tab.icon}</span>
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>
@@ -101,7 +103,7 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-4">Thống kê</h3>
             {analyticsData ? (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-primary/10 rounded-lg p-4 text-center">
                   <div className="text-3xl font-bold text-primary">{analyticsData.views}</div>
                   <div className="text-sm text-gray-600">Lượt xem</div>

@@ -1,8 +1,12 @@
-import express from 'express';
-import crypto from 'crypto';
+import express, { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { authenticate } from '../middleware/auth';
+import { r2Client, isR2Enabled, R2_BUCKET_NAME, R2_PUBLIC_URL } from '../lib/r2';
 
 const router = express.Router();
 
@@ -13,82 +17,153 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-// Generate presigned URL for client-side upload (S3 mode when configured)
-router.post('/presigned-url', authenticate, async (req, res, next) => {
-  try {
-    const { fileName, contentType } = req.body;
-
-    if (process.env.AWS_S3_BUCKET) {
-      // S3 mode: return presigned URL for direct-to-S3 upload
-      // TODO: implement with @aws-sdk/s3-request-presigner when S3 is configured
-      res.json({
-        uploadUrl: `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/`,
-        key: `uploads/${crypto.randomBytes(8).toString('hex')}/${fileName}`,
-        publicUrl: `https://cdn.example.com/placeholder`,
-      });
+// Multer memory storage (we process with Sharp before saving)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
     } else {
-      // Local mode: return server upload endpoint
-      const key = `uploads/${crypto.randomBytes(8).toString('hex')}/${fileName}`;
-      res.json({
-        uploadUrl: `/api/v1/upload/file`,
-        key,
-        publicUrl: `/api/v1/upload/serve/${key}`,
-      });
+      cb(new Error('Only image files are allowed'));
     }
-  } catch (error) {
-    next(error);
-  }
+  },
 });
 
-// Direct file upload (local storage mode)
-router.post('/file', authenticate, async (req: any, res, next) => {
+// Multer error handling middleware
+const multerErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large. Maximum size is 2MB.' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+  // If it's not a multer error, pass to the next error handler
+  next(err);
+};
+
+interface UploadResult {
+  key: string;
+  publicUrl: string;
+  thumbnailUrl: string;
+  size: number;
+}
+
+async function processAndUploadImage(file: Express.Multer.File): Promise<UploadResult> {
+  const id = crypto.randomBytes(12).toString('hex');
+  const ext = 'webp';
+
+  // Process full image (max 1920px width, WebP, quality 85)
+  const fullBuffer = await sharp(file.buffer)
+    .resize({ width: 1920, withoutEnlargement: true })
+    .webp({ quality: 85 })
+    .toBuffer();
+
+  // Process thumbnail (max 400px width, WebP, quality 80)
+  const thumbBuffer = await sharp(file.buffer)
+    .resize({ width: 400, withoutEnlargement: true })
+    .webp({ quality: 80 })
+    .toBuffer();
+
+  const fullKey = `images/${id}/full.${ext}`;
+  const thumbKey = `images/${id}/thumb.${ext}`;
+
+  if (isR2Enabled && r2Client) {
+    // Upload to R2
+    await r2Client.send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: fullKey,
+        Body: fullBuffer,
+        ContentType: 'image/webp',
+      })
+    );
+
+    await r2Client.send(
+      new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: thumbKey,
+        Body: thumbBuffer,
+        ContentType: 'image/webp',
+      })
+    );
+
+    return {
+      key: fullKey,
+      publicUrl: `${R2_PUBLIC_URL}/${fullKey}`,
+      thumbnailUrl: `${R2_PUBLIC_URL}/${thumbKey}`,
+      size: fullBuffer.length,
+    };
+  } else {
+    // Local storage mode
+    const subDir = id.slice(0, 2);
+    const dirPath = path.join(UPLOADS_DIR, subDir, id);
+
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+
+    const fullPath = path.join(dirPath, `full.${ext}`);
+    const thumbPath = path.join(dirPath, `thumb.${ext}`);
+
+    fs.writeFileSync(fullPath, fullBuffer);
+    fs.writeFileSync(thumbPath, thumbBuffer);
+
+    return {
+      key: `${subDir}/${id}/full.${ext}`,
+      publicUrl: `/api/v1/upload/serve/${subDir}/${id}/full.${ext}`,
+      thumbnailUrl: `/api/v1/upload/serve/${subDir}/${id}/thumb.${ext}`,
+      size: fullBuffer.length,
+    };
+  }
+}
+
+// Multi-file upload endpoint
+router.post('/files', authenticate, upload.array('files', 20), multerErrorHandler, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const chunks: Buffer[] = [];
-    const contentType = req.headers['content-type'] || 'application/octet-stream';
-    const contentLength = parseInt(req.headers['content-length'] || '0');
+    const files = req.files as Express.Multer.File[];
 
-    // Max 10MB
-    if (contentLength > 10 * 1024 * 1024) {
-      return res.status(413).json({ error: 'File too large (max 10MB)' });
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
     }
 
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
-    req.on('end', () => {
-      const buffer = Buffer.concat(chunks);
-      const ext = contentType.includes('image/') ? contentType.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg' : 'bin';
-      const filename = `${crypto.randomBytes(12).toString('hex')}.${ext}`;
-      const subDir = filename.slice(0, 2);
-      const dirPath = path.join(UPLOADS_DIR, subDir);
+    const results: UploadResult[] = [];
 
-      if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-      }
+    for (const file of files) {
+      const result = await processAndUploadImage(file);
+      results.push(result);
+    }
 
-      const filePath = path.join(dirPath, filename);
-      fs.writeFileSync(filePath, buffer);
-
-      const key = `${subDir}/${filename}`;
-      res.json({
-        key,
-        publicUrl: `/api/v1/upload/serve/${key}`,
-        size: buffer.length,
-      });
-    });
+    res.json({ results });
   } catch (error) {
     next(error);
   }
 });
 
-// Serve uploaded files
-router.get('/serve/:subDir/:filename', (req, res) => {
-  const { subDir, filename } = req.params;
-  const filePath = path.join(UPLOADS_DIR, subDir, filename);
+// Single file upload (backward compatible)
+router.post('/file', authenticate, upload.single('file'), multerErrorHandler, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const result = await processAndUploadImage(req.file);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Serve uploaded files (local mode only)
+router.get('/serve/:subDir/:id/:filename', (req, res) => {
+  const { subDir, id, filename } = req.params;
+  const filePath = path.join(UPLOADS_DIR, subDir, id, filename);
 
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: 'File not found' });
   }
 
-  res.sendFile(filePath);
+  res.sendFile(path.resolve(filePath));
 });
 
 export default router;

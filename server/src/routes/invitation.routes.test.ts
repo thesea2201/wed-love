@@ -14,78 +14,122 @@ let testUser: any;
 let testInvitation: any;
 let authToken: string;
 
-describe('Invitation Routes - Critical Fields Update', () => {
+// Helper: create a fresh invitation for each test that needs a clean slate
+async function createTestInvitation(overrides: any = {}) {
+  return await prisma.invitation.create({
+    data: {
+      userId: testUser.id,
+      slug: `test-slug-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title: 'Test Title',
+      groomName: 'Original Groom',
+      brideName: 'Original Bride',
+      weddingDate: new Date('2025-12-25'),
+      template: 'cinematic',
+      ...overrides,
+    },
+  });
+}
+
+describe('Invitation Routes - brideName / groomName / weddingDate Regression', () => {
   beforeAll(async () => {
-    // Create test user
     testUser = await prisma.user.create({
       data: {
-        email: 'test-critical@example.com',
+        email: `test-regression-${Date.now()}@example.com`,
         password: 'hashedpassword',
-        groomName: 'Original Groom',
-        brideName: 'Original Bride',
+        groomName: 'Seed Groom',
+        brideName: 'Seed Bride',
         weddingDate: new Date('2025-12-25'),
       },
     });
 
-    // Create test invitation
-    testInvitation = await prisma.invitation.create({
-      data: {
-        userId: testUser.id,
-        slug: 'test-slug-abc123',
-        title: 'Original Title',
-        groomName: 'Original Groom',
-        brideName: 'Original Bride',
-        weddingDate: new Date('2025-12-25'),
-        template: 'cinematic',
-      },
-    });
+    testInvitation = await createTestInvitation();
 
-    // Generate auth token
-    authToken = jwt.sign({ userId: testUser.id }, process.env.JWT_SECRET || 'test-secret');
+    authToken = jwt.sign({ userId: testUser.id }, process.env.JWT_SECRET!);
   });
 
   afterAll(async () => {
-    // Cleanup
     await prisma.invitation.deleteMany({ where: { userId: testUser.id } });
     await prisma.user.delete({ where: { id: testUser.id } });
   });
 
-  describe('PATCH /:id - Update brideName, groomName, weddingDate', () => {
-    it('should update groomName successfully', async () => {
+  // ─── REGRESSION GUARD: brideName must persist through PATCH ───
+  describe('REGRESSION: brideName must save and persist', () => {
+    it('PATCH with brideName → DB reflects the new value (not old, not null)', async () => {
+      const updatedBrideName = 'Updated Bride Name';
+
       const res = await request(app)
         .patch(`/invitations/${testInvitation.id}`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ groomName: 'New Groom Name' });
+        .send({ brideName: updatedBrideName });
 
       expect(res.status).toBe(200);
-      expect(res.body.groomName).toBe('New Groom Name');
-      expect(res.body.brideName).toBe('Original Bride'); // unchanged
+      expect(res.body.brideName).toBe(updatedBrideName);
 
-      // Verify in database
-      const updated = await prisma.invitation.findUnique({
+      // ★ Regression guard: direct DB check
+      const fromDb = await prisma.invitation.findUnique({
         where: { id: testInvitation.id },
       });
-      expect(updated?.groomName).toBe('New Groom Name');
+      expect(fromDb?.brideName).toBe(updatedBrideName);
     });
 
-    it('should update brideName successfully', async () => {
+    it('PATCH with brideName → old value is gone (not silently ignored)', async () => {
+      const invitation = await createTestInvitation();
+      const newName = 'Regression Bride';
+
+      await request(app)
+        .patch(`/invitations/${invitation.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ brideName: newName });
+
+      const fromDb = await prisma.invitation.findUnique({
+        where: { id: invitation.id },
+      });
+      expect(fromDb?.brideName).toBe(newName);
+      expect(fromDb?.brideName).not.toBe('Original Bride');
+    });
+  });
+
+  // ─── REGRESSION GUARD: groomName must persist through PATCH ───
+  describe('REGRESSION: groomName must save and persist', () => {
+    it('PATCH with groomName → DB reflects the new value (not old, not null)', async () => {
+      const updatedGroomName = 'Updated Groom Name';
+
       const res = await request(app)
         .patch(`/invitations/${testInvitation.id}`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ brideName: 'New Bride Name' });
+        .send({ groomName: updatedGroomName });
 
       expect(res.status).toBe(200);
-      expect(res.body.brideName).toBe('New Bride Name');
+      expect(res.body.groomName).toBe(updatedGroomName);
 
-      // Verify in database
-      const updated = await prisma.invitation.findUnique({
+      const fromDb = await prisma.invitation.findUnique({
         where: { id: testInvitation.id },
       });
-      expect(updated?.brideName).toBe('New Bride Name');
+      expect(fromDb?.groomName).toBe(updatedGroomName);
     });
 
-    it('should update weddingDate successfully', async () => {
-      const newDate = '2026-06-15T00:00:00.000Z';
+    it('PATCH with groomName → old value is gone (not silently ignored)', async () => {
+      const invitation = await createTestInvitation();
+      const newName = 'Regression Groom';
+
+      await request(app)
+        .patch(`/invitations/${invitation.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ groomName: newName });
+
+      const fromDb = await prisma.invitation.findUnique({
+        where: { id: invitation.id },
+      });
+      expect(fromDb?.groomName).toBe(newName);
+      expect(fromDb?.groomName).not.toBe('Original Groom');
+    });
+  });
+
+  // ─── REGRESSION GUARD: weddingDate must persist through PATCH ───
+  describe('REGRESSION: weddingDate must save and persist', () => {
+    it('PATCH with weddingDate → DB reflects the new value', async () => {
+      const newDate = '2026-08-20T00:00:00.000Z';
+
       const res = await request(app)
         .patch(`/invitations/${testInvitation.id}`)
         .set('Authorization', `Bearer ${authToken}`)
@@ -94,38 +138,82 @@ describe('Invitation Routes - Critical Fields Update', () => {
       expect(res.status).toBe(200);
       expect(new Date(res.body.weddingDate).toISOString()).toBe(newDate);
 
-      // Verify in database
-      const updated = await prisma.invitation.findUnique({
+      const fromDb = await prisma.invitation.findUnique({
         where: { id: testInvitation.id },
       });
-      expect(updated?.weddingDate.toISOString()).toBe(newDate);
+      expect(fromDb?.weddingDate.toISOString()).toBe(newDate);
     });
+  });
 
-    it('should update all three fields in one request', async () => {
+  // ─── REGRESSION GUARD: all three fields in one request ───
+  describe('REGRESSION: multi-field PATCH must persist all fields', () => {
+    it('PATCH with all three fields → every field is saved, none are silently dropped', async () => {
+      const invitation = await createTestInvitation();
+      const payload = {
+        groomName: 'Multi Groom',
+        brideName: 'Multi Bride',
+        weddingDate: '2027-01-01T00:00:00.000Z',
+      };
+
+      // Generate fresh token for the test user
+      const freshToken = jwt.sign({ userId: testUser.id }, process.env.JWT_SECRET!);
+
       const res = await request(app)
-        .patch(`/invitations/${testInvitation.id}`)
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          groomName: 'Final Groom',
-          brideName: 'Final Bride',
-          weddingDate: '2026-10-10T00:00:00.000Z',
-        });
+        .patch(`/invitations/${invitation.id}`)
+        .set('Authorization', `Bearer ${freshToken}`)
+        .send(payload);
+
+      // Debug if it fails
+      if (res.status !== 200) {
+        console.log('PATCH status:', res.status);
+        console.log('PATCH body:', res.body);
+      }
 
       expect(res.status).toBe(200);
-      expect(res.body.groomName).toBe('Final Groom');
-      expect(res.body.brideName).toBe('Final Bride');
-      expect(new Date(res.body.weddingDate).toISOString()).toBe('2026-10-10T00:00:00.000Z');
+      expect(res.body.groomName).toBe(payload.groomName);
+      expect(res.body.brideName).toBe(payload.brideName);
+      expect(new Date(res.body.weddingDate).toISOString()).toBe(payload.weddingDate);
+
+      // ★ Key regression check: verify DB, not just response
+      const fromDb = await prisma.invitation.findUnique({
+        where: { id: invitation.id },
+      });
+      expect(fromDb?.groomName).toBe(payload.groomName);
+      expect(fromDb?.brideName).toBe(payload.brideName);
+      expect(fromDb?.weddingDate.toISOString()).toBe(payload.weddingDate);
     });
+  });
 
-    it('should reject empty brideName', async () => {
-      const res = await request(app)
-        .patch(`/invitations/${testInvitation.id}`)
+  // ─── REGRESSION GUARD: allowedFields whitelist must include critical fields ───
+  describe('REGRESSION: server whitelist must include critical fields', () => {
+    it('allowedFields must contain brideName (if removed, form saves will silently fail)', () => {
+      // Read the route file and verify the whitelist still includes brideName
+      const fs = require('fs');
+      const routeContent = fs.readFileSync(
+        require('path').resolve(__dirname, './invitation.routes.ts'),
+        'utf-8'
+      );
+      expect(routeContent).toMatch(/'brideName'/);
+      expect(routeContent).toMatch(/'groomName'/);
+      expect(routeContent).toMatch(/'weddingDate'/);
+    });
+  });
+
+  // ─── REGRESSION GUARD: GET returns the saved values ───
+  describe('REGRESSION: GET /:slug returns saved brideName and groomName', () => {
+    it('public GET after PATCH brideName → response contains updated value', async () => {
+      const invitation = await createTestInvitation();
+      const newBride = 'Public Bride';
+
+      await request(app)
+        .patch(`/invitations/${invitation.id}`)
         .set('Authorization', `Bearer ${authToken}`)
-        .send({ brideName: '' });
+        .send({ brideName: newBride });
 
-      // Empty string should be allowed by API but may be rejected by Prisma if field is required
-      // This test documents current behavior
-      expect([200, 400, 500]).toContain(res.status);
+      // ★ Regression guard: public route is /invitations/:slug (no auth required)
+      const res = await request(app).get(`/invitations/${invitation.slug}`);
+      expect(res.status).toBe(200);
+      expect(res.body.invitation.brideName).toBe(newBride);
     });
   });
 });

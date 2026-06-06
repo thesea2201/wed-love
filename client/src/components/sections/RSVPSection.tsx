@@ -38,11 +38,11 @@ export default function RSVPSection({ config, invitation, guest, token }: RSVPSe
 
   if (submitted) {
     return (
-      <section className="py-24 px-4 bg-white">
+      <section className="py-12 md:py-24 px-3 md:px-4 bg-white">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md mx-auto text-center"
+          className="w-full mx-auto text-center"
         >
           <div className="bg-green-50 rounded-2xl p-8">
             <h3 className="font-display text-2xl text-green-800 mb-2">Cảm ơn bạn!</h3>
@@ -69,7 +69,7 @@ export default function RSVPSection({ config, invitation, guest, token }: RSVPSe
       >
         <h2 className="font-display text-2xl md:text-4xl text-center mb-6 md:mb-8">Xác Nhận Tham Dự</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 w-full">
           {/* Status Selection - always stack on narrow, 3 cols on wider */}
           <div className="flex flex-col gap-2 sm:grid sm:grid-cols-3 sm:gap-3">
             {rsvpOptions.map((option) => (

@@ -1,6 +1,6 @@
 # WedLove - Progress Tracker
 
-> Last updated: 2026-05-01 14:55 UTC+7
+> Last updated: 2026-06-06 17:10 UTC+7
 
 ## 🏗️ Architecture
 
@@ -34,7 +34,7 @@
 ### Phase 2: Personalization & Polish
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 2.1 | Excel/CSV guest import | ❌ TODO | Backend bulk import exists, need UI |
+| 2.1 | Excel/CSV guest import | ✅ DONE | UI shipped: 4-step wizard (upload → map → preview → dedupe). See `client/src/components/guest-import/` |
 | 2.2 | QR code per guest | ❌ TODO | Generate unique QR linking to invitation+token |
 | 2.3 | More templates (5 total) | ❌ TODO | Only "cinematic" now, need elegant/modern/minimal/vintage |
 | 2.4 | Music player on invitation | ❌ TODO | Background music with autoplay/fade |
@@ -80,23 +80,29 @@
 | `client/src/main.tsx` | React entry, QueryClient, BrowserRouter |
 | `client/src/App.tsx` | Routes: /, /dashboard, /invitation/:slug |
 | `client/src/pages/AuthPage.tsx` | Login/Register form |
-| `client/src/pages/InvitationView.tsx` | Cinematic invitation with parallax |
-| `client/src/pages/AdminDashboard.tsx` | Editor, Guests, Analytics tabs |
-| `client/src/components/HeroSection.tsx` | Names, countdown, personalized greeting |
-| `client/src/components/StorySection.tsx` | Our story layout |
-| `client/src/components/EventSection.tsx` | Ceremony & reception info |
-| `client/src/components/RSVPSection.tsx` | RSVP form (attending/maybe/declined) |
-| `client/src/components/GuestList.tsx` | Guest management with add modal |
 | `client/src/components/InvitationEditor.tsx` | Multi-tab editor: Content/Design/Sections + Preview |
 | `client/src/components/invitation-editor/ContentTab.tsx` | Edit names, date, venue, story, times |
 | `client/src/components/invitation-editor/DesignTab.tsx` | Template, colors, font, cover photo |
 | `client/src/components/invitation-editor/SectionsTab.tsx` | Toggle/reorder sections, per-section config |
+| `client/src/components/invitation-editor/PhotosTab.tsx` | Cover photo + gallery picker (uses MediaLibraryModal) |
 | `client/src/components/invitation-editor/PreviewPane.tsx` | Real-time iframe preview with draft data |
+| `client/src/components/sections/` | All 9 renderable sections (Hero, Story, Event, RSVP, Gallery, Countdown, Map, Music, Gift) + SectionRenderer |
+| `client/src/components/MediaLibraryModal.tsx` | Reusable media picker (upload, search, pick) |
+| `client/src/components/GuestList.tsx` | Guest management + CSV import trigger |
+| `client/src/components/guest-import/` | 4-step CSV import wizard (Upload, Map, Preview, Duplicate) |
+| `client/src/components/ImageUpload.tsx` | Drag-to-upload image component with size limit + error toasts |
+| `client/src/components/Icons.tsx` | Shared icon set |
+| `client/src/components/SEOHead.tsx` | `<head>` meta tags for invitation pages |
+| `client/src/components/ThemeProvider.tsx` | Section-level theme context |
+| `client/src/utils/api.ts` | Axios instance with JWT token + 401 redirect |
+| `client/src/utils/upload.ts` | File upload helper (local + R2 modes) |
+| `client/src/utils/sections.ts` | Section type + preset definitions (shared client/server) |
+| `client/src/utils/downloadTemplate.ts` | CSV template download trigger |
+| `client/src/stores/` | Zustand stores (auth, invitation, editor) |
+| `client/public/templates/guests-template.csv` | CSV template for guest import |
 | `docs/DESIGN.md` | Section system design specification |
 | `docs/TESTING.md` | QA test cases for all 9 sections |
-| `client/src/utils/api.ts` | Axios instance with JWT token + 401 redirect |
-| `client/src/utils/upload.ts` | File upload helper (local + S3 modes) |
-| `client/src/components/ImageUpload.tsx` | Drag-to-upload image component |
+| `docs/changes/` | Per-change implementation notes (was `CHANGES.md` at root) |
 
 ### Infrastructure
 | File | Purpose |
@@ -130,7 +136,7 @@ cd server && npx tsx prisma/seed.ts
 1. **Prisma v7 adapter pattern** — Must use `PrismaPg(pool)` not `PrismaPg({connectionString})` due to SASL auth bug
 2. **Tailwind v4** — Requires `@tailwindcss/postcss` plugin (not plain `tailwindcss`)
 3. **TypeScript lint warnings** — Some `any` types in routes, generated Prisma client not recognized by IDE
-4. **Upload is local-only** — Files stored in `server/uploads/`, need AWS S3 for production
+4. **Upload backend is local-only** — R2 wrapper exists at `server/src/lib/r2.ts`, but not wired into upload route yet. Add R2 keys to `.env` and switch the storage adapter to enable.
 5. **InvitationEditor fetch by ID** — Uses `/invitations/:id` (auth required), public slug route returns different shape
 
 ## 📚 Documentation
@@ -148,8 +154,8 @@ cd server && npx tsx prisma/seed.ts
 | Testing & Monitoring | Dev | `docs/plan/06-testing-monitoring.md` |
 
 ## 🎯 Next Priority (Phase 2)
-1. **Excel/CSV guest import UI** — Backend bulk import exists, need file upload + column mapping UI
-2. **QR code per guest** — Generate unique QR linking to invitation+token
-3. **More templates** — Only "cinematic" now, add elegant/modern/minimal/vintage
-4. **Music player** — Background music with autoplay/fade on invitation page
-5. **Gallery section** — Photo grid with lightbox on invitation page
+1. **QR code per guest** — Generate unique QR linking to invitation+token
+2. **More templates** — Only "cinematic" now, add elegant/modern/minimal/vintage
+3. **Music player** — Background music with autoplay/fade on invitation page
+4. **Gallery section** — Photo grid with lightbox on invitation page
+5. **Wire countdown timer** — Component exists in `sections/CountdownSection.tsx`, needs real `weddingDate` data from invitation

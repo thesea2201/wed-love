@@ -7,7 +7,7 @@
 ```typescript
 {
   showCountdown: boolean;              // Hiển thị countdown timer
-  parallax: boolean;                   // Hiệu ứng parallax background
+  parallax: boolean;                   // (Future) Hiệu ứng parallax background — config có nhưng chưa implement
   greetingStyle: 'formal' | 'casual'; // Phong cách chào khách
 }
 ```
@@ -19,7 +19,7 @@
 | groomName | `invitation.groomName` | ✅ |
 | brideName | `invitation.brideName` | ✅ |
 | weddingDate | `invitation.weddingDate` | ✅ |
-| coverPhoto | `invitation.coverPhoto` | Có fallback Unsplash |
+| coverPhoto | `invitation.coverPhoto` | Chọn từ Media Library. Fallback Unsplash |
 | subtitle | `invitation.subtitle` | Hiển thị nếu có |
 | guest name | `guest?.name` | Cho lời chào cá nhân |
 
