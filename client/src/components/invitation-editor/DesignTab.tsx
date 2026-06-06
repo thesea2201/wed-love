@@ -1,16 +1,17 @@
 import { TEMPLATE_OPTIONS, FONT_OPTIONS, type DesignTabProps } from './types';
+import { getSectionsForTemplate } from '../../utils/sections';
 import ImageUpload from '../ImageUpload';
 
 export default function DesignTab({ draft, onChange }: DesignTabProps) {
   const handleTemplateChange = (templateId: string) => {
     const template = TEMPLATE_OPTIONS.find((t) => t.id === templateId);
-    if (template) {
-      onChange({
-        template: templateId,
-        primaryColor: template.primaryColor,
-        fontFamily: template.fontFamily,
-      });
-    }
+    if (!template || templateId === draft.template) return;
+    onChange({
+      template: templateId,
+      primaryColor: template.primaryColor,
+      fontFamily: template.fontFamily,
+      sections: getSectionsForTemplate(templateId),
+    });
   };
 
   return (
@@ -45,7 +46,7 @@ export default function DesignTab({ draft, onChange }: DesignTabProps) {
           ))}
         </div>
         <p className="text-sm text-gray-500 mt-4">
-          Chọn template sẽ cập nhật màu sắc và font chữ mặc định. Bạn có thể tùy chỉnh thêm bên dưới.
+          Chọn template sẽ cập nhật màu sắc, font chữ và sections mặc định. Bạn có thể tùy chỉnh thêm bên dưới.
         </p>
       </div>
 
