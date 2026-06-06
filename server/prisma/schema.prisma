@@ -83,6 +83,8 @@ model Guest {
   email             String?
   phone             String?
   token             String         @unique
+  viewedAt          DateTime?      @map("viewed_at")
+  viewCount         Int            @default(0) @map("view_count")
   rsvpStatus        String         @default("pending") @map("rsvp_status")
   rsvpAttendees     Int            @default(0) @map("rsvp_attendees")
   rsvpDietary       String[]       @default([]) @map("rsvp_dietary")

@@ -113,15 +113,27 @@ router.get('/:slug', async (req, res, next) => {
         where: { invitationId: invitation.id, token },
       });
       if (guest) {
+        // Track view on guest: set viewedAt on first scan, increment viewCount after
+        const updatedGuest = await prisma.guest.update({
+          where: { id: guest.id },
+          data: {
+            viewedAt: guest.viewedAt ?? new Date(),
+            viewCount: { increment: 1 },
+          },
+        });
         guestData = {
-          name: guest.name,
+          name: updatedGuest.name,
           personalization: {
-            customMessage: guest.customMessage,
-            sharedPhoto: guest.sharedPhoto,
+            customMessage: updatedGuest.customMessage,
+            sharedPhoto: updatedGuest.sharedPhoto,
           },
           rsvp: {
-            status: guest.rsvpStatus,
-            attendees: guest.rsvpAttendees,
+            status: updatedGuest.rsvpStatus,
+            attendees: updatedGuest.rsvpAttendees,
+          },
+          view: {
+            firstViewedAt: updatedGuest.viewedAt,
+            viewCount: updatedGuest.viewCount,
           },
         };
       }
