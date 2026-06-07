@@ -7,6 +7,8 @@ vi.mock('../utils/api', () => ({
   default: {
     post: vi.fn(),
     get: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -255,6 +257,71 @@ describe('auth-store.ts — Zustand Auth Store', () => {
       useAuthStore.getState().logout();
 
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
+    });
+  });
+
+  // ─── CHANGE PASSWORD ───
+  describe('changePassword()', () => {
+    it('should call api.put with /auth/password and the passwords', async () => {
+      const api = await getMockedApi();
+      api.put.mockResolvedValue({ data: { ok: true } });
+
+      await useAuthStore.getState().changePassword('oldPass123', 'newPass456');
+
+      expect(api.put).toHaveBeenCalledWith('/auth/password', {
+        currentPassword: 'oldPass123',
+        newPassword: 'newPass456',
+      });
+    });
+
+    it('should re-throw on API error', async () => {
+      const api = await getMockedApi();
+      api.put.mockRejectedValue(new Error('Wrong current password'));
+
+      await expect(
+        useAuthStore.getState().changePassword('wrong', 'newPass456')
+      ).rejects.toThrow('Wrong current password');
+    });
+  });
+
+  // ─── DELETE ACCOUNT ───
+  describe('deleteAccount()', () => {
+    it('should call api.delete with /auth/account and the password in body', async () => {
+      const api = await getMockedApi();
+      api.delete.mockResolvedValue({ data: { ok: true } });
+
+      await useAuthStore.getState().deleteAccount('myPassword');
+
+      expect(api.delete).toHaveBeenCalledWith('/auth/account', {
+        data: { password: 'myPassword' },
+      });
+    });
+
+    it('should clear token and user on success', async () => {
+      const api = await getMockedApi();
+      api.delete.mockResolvedValue({ data: { ok: true } });
+
+      useAuthStore.setState({ token: 'tok', user: { id: '1', email: 'e', groomName: 'G', brideName: 'B', weddingDate: '2026-01-01', plan: 'free' } as User });
+      localStorageMock.setItem('token', 'tok');
+
+      await useAuthStore.getState().deleteAccount('pw');
+
+      expect(useAuthStore.getState().token).toBeNull();
+      expect(useAuthStore.getState().user).toBeNull();
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
+    });
+
+    it('should NOT clear token on API error', async () => {
+      const api = await getMockedApi();
+      api.delete.mockRejectedValue(new Error('Wrong password'));
+
+      useAuthStore.setState({ token: 'tok', user: { id: '1', email: 'e', groomName: 'G', brideName: 'B', weddingDate: '2026-01-01', plan: 'free' } as User });
+
+      await expect(
+        useAuthStore.getState().deleteAccount('wrong')
+      ).rejects.toThrow('Wrong password');
+
+      expect(useAuthStore.getState().token).toBe('tok');
     });
   });
 });

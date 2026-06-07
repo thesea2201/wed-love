@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useInvitationList, useInvitationAdmin, useUpdateInvitation, useUpdateSections, usePublishInvitation } from '../hooks/use-invitation';
 import { useAnalytics } from '../hooks/use-analytics';
 import GuestList from '../components/GuestList';
@@ -38,9 +38,14 @@ export default function AdminDashboard() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold">WedLove</h1>
-          <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-gray-900">
-            Đăng xuất
-          </button>
+          <div className="flex items-center gap-4">
+            <Link to="/settings" className="text-sm text-gray-600 hover:text-gray-900">
+              Cài đặt
+            </Link>
+            <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-gray-900">
+              Đăng xuất
+            </button>
+          </div>
         </div>
       </header>
 

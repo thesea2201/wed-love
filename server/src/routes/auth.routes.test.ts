@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import authRoutes from './auth.routes';
 import { prisma } from '../config/database';
 import jwt from 'jsonwebtoken';
@@ -282,6 +284,186 @@ describe('Auth Routes - Registration, Login, User Profile', () => {
       // Actual behavior: middleware returns 401 "User not found"
       expect(response.status).toBe(401);
       expect(response.body).toHaveProperty('error', 'User not found');
+    });
+  });
+
+  // ─── CHANGE PASSWORD ───
+
+  describe('PUT /auth/password', () => {
+    let testUserId: string;
+    let validToken: string;
+    const hashedTestPassword = bcrypt.hashSync(TEST_PASSWORD, 12);
+
+    beforeEach(async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `pwd-${Date.now()}@example.com`,
+          password: hashedTestPassword,
+          groomName: TEST_GROOM,
+          brideName: TEST_BRIDE,
+          weddingDate: new Date(TEST_WEDDING_DATE),
+        },
+      });
+      testUserId = user.id;
+      createdUserIds.push(user.id);
+      validToken = generateToken(user.id);
+    });
+
+    it('changes password when current password is correct', async () => {
+      const newPassword = 'newSecurePassword456';
+      const response = await request(app)
+        .put('/auth/password')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ currentPassword: TEST_PASSWORD, newPassword });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ ok: true });
+
+      // Verify the new password works for login
+      const loginRes = await request(app)
+        .post('/auth/login')
+        .send({ email: (await prisma.user.findUnique({ where: { id: testUserId } }))!.email, password: newPassword });
+      expect(loginRes.status).toBe(200);
+    });
+
+    it('rejects when current password is wrong (401)', async () => {
+      const response = await request(app)
+        .put('/auth/password')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ currentPassword: 'wrongPassword', newPassword: 'newSecurePassword456' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toMatch(/Mật khẩu hiện tại không đúng/);
+    });
+
+    it('rejects new password shorter than 8 chars (400)', async () => {
+      const response = await request(app)
+        .put('/auth/password')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ currentPassword: TEST_PASSWORD, newPassword: 'short' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
+    });
+
+    it('rejects missing currentPassword (400)', async () => {
+      const response = await request(app)
+        .put('/auth/password')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ newPassword: 'newSecurePassword456' });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects request without auth (401)', async () => {
+      const response = await request(app)
+        .put('/auth/password')
+        .send({ currentPassword: TEST_PASSWORD, newPassword: 'newSecurePassword456' });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('rejects unknown fields in body (strict)', async () => {
+      const response = await request(app)
+        .put('/auth/password')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ currentPassword: TEST_PASSWORD, newPassword: 'newSecurePassword456', role: 'admin' });
+
+      expect(response.status).toBe(400);
+    });
+  });
+
+  // ─── DELETE ACCOUNT ───
+
+  describe('DELETE /auth/account', () => {
+    let testUserId: string;
+    let validToken: string;
+
+    beforeEach(async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: `del-${Date.now()}@example.com`,
+          password: bcrypt.hashSync(TEST_PASSWORD, 12),
+          groomName: TEST_GROOM,
+          brideName: TEST_BRIDE,
+          weddingDate: new Date(TEST_WEDDING_DATE),
+        },
+      });
+      testUserId = user.id;
+      createdUserIds.push(user.id);
+      validToken = generateToken(user.id);
+    });
+
+    it('deletes the user and cascades invitations/guests when password is correct', async () => {
+      // Create an invitation + guest to verify cascade
+      const invitation = await prisma.invitation.create({
+        data: {
+          userId: testUserId,
+          slug: `cascade-test-${Date.now()}`,
+          template: 'cinematic',
+          title: 'Anh & Em',
+          primaryColor: '#c8956c',
+          fontFamily: 'Playfair Display',
+          groomName: TEST_GROOM,
+          brideName: TEST_BRIDE,
+          weddingDate: new Date(TEST_WEDDING_DATE),
+        },
+      });
+      const guest = await prisma.guest.create({
+        data: { invitationId: invitation.id, name: 'Khách', token: `tok-${crypto.randomUUID()}` },
+      });
+
+      const response = await request(app)
+        .delete('/auth/account')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ password: TEST_PASSWORD });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ ok: true });
+
+      // User is gone
+      const userAfter = await prisma.user.findUnique({ where: { id: testUserId } });
+      expect(userAfter).toBeNull();
+
+      // Cascade worked — invitation + guest are gone too
+      const invAfter = await prisma.invitation.findUnique({ where: { id: invitation.id } });
+      const guestAfter = await prisma.guest.findUnique({ where: { id: guest.id } });
+      expect(invAfter).toBeNull();
+      expect(guestAfter).toBeNull();
+
+      // Cleanup list shouldn't try to delete this user
+      createdUserIds = createdUserIds.filter((id) => id !== testUserId);
+    });
+
+    it('rejects wrong password (401)', async () => {
+      const response = await request(app)
+        .delete('/auth/account')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ password: 'wrongPassword' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.error).toMatch(/Mật khẩu không đúng/);
+
+      // User still exists
+      const userAfter = await prisma.user.findUnique({ where: { id: testUserId } });
+      expect(userAfter).not.toBeNull();
+    });
+
+    it('rejects missing password (400)', async () => {
+      const response = await request(app)
+        .delete('/auth/account')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({});
+
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects request without auth (401)', async () => {
+      const response = await request(app)
+        .delete('/auth/account')
+        .send({ password: TEST_PASSWORD });
+
+      expect(response.status).toBe(401);
     });
   });
 });

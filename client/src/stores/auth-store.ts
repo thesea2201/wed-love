@@ -18,6 +18,8 @@ interface AuthStore {
   register: (data: { email: string; password: string; groomName: string; brideName: string; weddingDate: string }) => Promise<void>;
   fetchMe: () => Promise<void>;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
 }
 
 export type { User };
@@ -64,6 +66,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
 
   logout: () => {
+    localStorage.removeItem('token');
+    set({ token: null, user: null });
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    await api.put('/auth/password', { currentPassword, newPassword });
+  },
+
+  deleteAccount: async (password) => {
+    await api.delete('/auth/account', { data: { password } });
     localStorage.removeItem('token');
     set({ token: null, user: null });
   },
