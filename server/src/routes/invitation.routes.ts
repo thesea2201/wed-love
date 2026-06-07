@@ -2,6 +2,8 @@ import express from 'express';
 import { prisma } from '../config/database';
 import { authenticate } from '../middleware/auth';
 import { getTemplatePreset, validateSections } from '../config/section-presets';
+import { validate } from '../middleware/validate';
+import { createInvitationSchema, updateInvitationSchema, sectionsUpdateSchema } from '../schemas';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -13,7 +15,7 @@ const generateSlug = (groomName: string, brideName: string): string => {
 };
 
 // Create invitation
-router.post('/', authenticate, async (req, res, next) => {
+router.post('/', authenticate, validate(createInvitationSchema), async (req, res, next) => {
   try {
     const userId = (req as any).userId;
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -164,7 +166,7 @@ router.get('/:slug', async (req, res, next) => {
 });
 
 // Update invitation
-router.patch('/:id', authenticate, async (req, res, next) => {
+router.patch('/:id', authenticate, validate(updateInvitationSchema), async (req, res, next) => {
   try {
     const userId = (req as any).userId;
     const id = req.params.id as string;
@@ -208,7 +210,7 @@ router.patch('/:id', authenticate, async (req, res, next) => {
 });
 
 // Update sections (reorder, add, remove, toggle visibility)
-router.patch('/:id/sections', authenticate, async (req, res, next) => {
+router.patch('/:id/sections', authenticate, validate(sectionsUpdateSchema), async (req, res, next) => {
   try {
     const userId = (req as any).userId;
     const id = req.params.id as string;

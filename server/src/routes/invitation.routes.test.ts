@@ -216,4 +216,52 @@ describe('Invitation Routes - brideName / groomName / weddingDate Regression', (
       expect(res.body.invitation.brideName).toBe(newBride);
     });
   });
+
+  // ─── ZOD VALIDATION ───
+  describe('Zod input validation', () => {
+    it('POST /invitations with invalid primaryColor (400)', async () => {
+      const res = await request(app)
+        .post('/invitations')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ primaryColor: 'not-a-hex' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+      expect(res.body.details.primaryColor).toBeDefined();
+    });
+
+    it('POST /invitations with coverPhoto that is not a URL (400)', async () => {
+      const res = await request(app)
+        .post('/invitations')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ coverPhoto: 'not-a-url' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+      expect(res.body.details.coverPhoto).toBeDefined();
+    });
+
+    it('PATCH /invitations/:id with latitude out of range (400)', async () => {
+      const invitation = await createTestInvitation();
+      const res = await request(app)
+        .patch(`/invitations/${invitation.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ latitude: 200 });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+      expect(res.body.details.latitude).toBeDefined();
+    });
+
+    it('PATCH /invitations/:id with unknown field is rejected by strict schema (400)', async () => {
+      const invitation = await createTestInvitation();
+      const res = await request(app)
+        .patch(`/invitations/${invitation.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ unknownField: 'evil' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+    });
+  });
 });
