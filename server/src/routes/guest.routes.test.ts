@@ -273,6 +273,36 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
 
       expect(response.status).toBe(401);
     });
+
+    it('should reject when guests is not an array (400)', async () => {
+      const response = await request(app)
+        .post('/guests/bulk')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          invitationId: testInvitation.id,
+          guests: 'not-an-array',
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('error', 'guests must be an array');
+    });
+
+    it('should reject when guests exceeds MAX_BULK_IMPORT (400)', async () => {
+      const oversized = Array.from({ length: 1001 }, (_, i) => ({ name: `Guest ${i}` }));
+      const response = await request(app)
+        .post('/guests/bulk')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          invitationId: testInvitation.id,
+          guests: oversized,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toMatch(/exceeds maximum of 1000 rows/);
+      // Verify nothing was inserted
+      const count = await prisma.guest.count({ where: { invitationId: testInvitation.id } });
+      expect(count).toBe(0);
+    });
   });
 
   describe('POST /guests/:token/rsvp (PUBLIC - no auth)', () => {

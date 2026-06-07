@@ -161,8 +161,8 @@ cd server && npx tsx prisma/seed.ts
 
 ## 🔄 Current PR Queue
 
-- **PR #8** `fix/review-findings-batch-1` → `main` — Cleanup batch addressing 5 review findings from PR #1 + #2: dead SectionRenderer comments, redundant phone validation, Content-Disposition filename collision (now includes short guest-id suffix), `format` param validation (400 on bad value), PUBLIC_BASE_URL env validation (try/catch URL parse), regenerate-token race protection (updateMany with where on token → 409 on stale). 2 new server tests. Server 83/83, client 75/75, tsc clean.
-- PR #7 (tsc cleanup) and earlier already merged to main.
+- **PR #9** `fix/review-findings-batch-2` → `main` — Review findings batch 2: server-side MAX_BULK_IMPORT=1000 cap on `/guests/bulk` (with `guests must be an array` validation), `findGuestForUser` permission helper extracted (used by qr-info, qr, regenerate-token — removes 3 copies of the 6-line find+check), view tracking wrapped in `prisma.$transaction` (analytics create + guest viewCount increment atomic). 2 new bulk tests (oversized, non-array). Server 85/85, client 75/75, tsc clean, build clean.
+- PR #8 (review batch 1) and earlier already merged to main.
 
 ## 📝 Follow-up Debt (post-merge, not blocking)
 
