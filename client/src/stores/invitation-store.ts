@@ -2,7 +2,7 @@ import { create } from 'zustand';
 
 interface InvitationStore {
   selectedInvitationId: string | null;
-  setSelectedInvitationId: (id: string) => void;
+  setSelectedInvitationId: (id: string | null) => void;
 }
 
 export const useInvitationStore = create<InvitationStore>((set) => ({

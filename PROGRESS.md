@@ -161,8 +161,8 @@ cd server && npx tsx prisma/seed.ts
 
 ## 🔄 Current PR Queue
 
+- **PR #7** `fix/client-tsc-test-errors` → `main` — Cleanup 19 pre-existing client `tsc --noEmit` errors in 3 test files. **Unblocks `npm run build`** end-to-end. Client 75/75 (unchanged), server 81/81, tsc clean, vite build clean. Pure typing fixes, no behavior changes.
 - PR #4 (music), PR #5 (gallery), PR #6 (countdown test) already merged to main.
-- Phase 2 frontend tasks done. Remaining is cleanup debt: 19 client tsc errors in `auth-store.test.ts` / `invitation-store.test.ts` / `api.test.ts` (vitest `mockResolvedValue` typing + undefined interceptor handlers).
 
 ## 📝 Follow-up Debt (post-merge, not blocking)
 
