@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import TemplateCard from '../components/TemplateCard';
+import { TEMPLATE_OPTIONS } from '../components/invitation-editor/types';
 
 function IconHeart({ className }: { className?: string }) {
   return (
@@ -114,6 +116,28 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Trust strip */}
+      <section className="py-8 border-y border-gray-100 bg-white">
+        <div className="max-w-[64rem] mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div>
+            <div className="text-2xl md:text-3xl font-display font-bold text-gray-900">5</div>
+            <div className="text-xs md:text-sm text-gray-500 mt-1">Mẫu thiệp đẹp</div>
+          </div>
+          <div>
+            <div className="text-2xl md:text-3xl font-display font-bold text-gray-900">12+</div>
+            <div className="text-xs md:text-sm text-gray-500 mt-1">Loại section</div>
+          </div>
+          <div>
+            <div className="text-2xl md:text-3xl font-display font-bold text-gray-900">QR</div>
+            <div className="text-xs md:text-sm text-gray-500 mt-1">Mời từng khách</div>
+          </div>
+          <div>
+            <div className="text-2xl md:text-3xl font-display font-bold text-rose-500">Miễn phí</div>
+            <div className="text-xs md:text-sm text-gray-500 mt-1">Dùng thử không giới hạn</div>
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section id="features" className="py-20 bg-gray-50">
         <div className="max-w-[80rem] mx-auto px-4 sm:px-6 lg:px-8">
@@ -157,6 +181,32 @@ export default function LandingPage() {
               description="Theo dõi danh sách khách mời, phản hồi tham dự và thống kê dễ dàng."
             />
           </div>
+        </div>
+      </section>
+
+      {/* Template Gallery */}
+      <section id="templates" className="py-20">
+        <div className="max-w-[80rem] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              5 mẫu thiệp đẹp, sẵn sàng dùng
+            </h2>
+            <p className="text-gray-600 text-lg max-w-[42rem] mx-auto">
+              Mỗi mẫu có bố cục section, màu sắc và font chữ riêng — click vào
+              bất kỳ mẫu nào để xem thử trước khi tạo thiệp của bạn.
+            </p>
+          </div>
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            data-testid="template-grid"
+          >
+            {TEMPLATE_OPTIONS.map((template) => (
+              <TemplateCard key={template.id} template={template} />
+            ))}
+          </div>
+          <p className="text-center text-sm text-gray-500 mt-8">
+            Bạn có thể đổi mẫu bất cứ lúc nào trong editor — không ảnh hưởng đến dữ liệu đã nhập.
+          </p>
         </div>
       </section>
 
