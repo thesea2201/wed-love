@@ -96,47 +96,61 @@ router.get('/:slug', async (req, res, next) => {
       return res.status(404).json({ error: 'Không tìm thấy thiệp cưới' });
     }
 
-    // Track view
-    await prisma.analytics.create({
-      data: {
-        invitationId: invitation.id,
-        event: 'view',
-        guestToken: token || null,
-        userAgent: req.headers['user-agent'] || null,
-        ip: req.ip,
-      },
-    });
-
+    // Track view: write the analytics row + (optionally) bump the guest
+    // viewCount atomically. If either fails, neither persists — prevents
+    // the two from drifting (e.g. analytics row with no viewCount bump,
+    // or vice versa).
     let guestData = null;
+    const viewTrackingOps: any[] = [
+      prisma.analytics.create({
+        data: {
+          invitationId: invitation.id,
+          event: 'view',
+          guestToken: token || null,
+          userAgent: req.headers['user-agent'] || null,
+          ip: req.ip,
+        },
+      }),
+    ];
+
+    let matchedGuest: Awaited<ReturnType<typeof prisma.guest.findFirst>> = null;
     if (token) {
-      const guest = await prisma.guest.findFirst({
+      matchedGuest = await prisma.guest.findFirst({
         where: { invitationId: invitation.id, token },
       });
-      if (guest) {
+      if (matchedGuest) {
         // Track view on guest: set viewedAt on first scan, increment viewCount after
-        const updatedGuest = await prisma.guest.update({
-          where: { id: guest.id },
-          data: {
-            viewedAt: guest.viewedAt ?? new Date(),
-            viewCount: { increment: 1 },
-          },
-        });
-        guestData = {
-          name: updatedGuest.name,
-          personalization: {
-            customMessage: updatedGuest.customMessage,
-            sharedPhoto: updatedGuest.sharedPhoto,
-          },
-          rsvp: {
-            status: updatedGuest.rsvpStatus,
-            attendees: updatedGuest.rsvpAttendees,
-          },
-          view: {
-            firstViewedAt: updatedGuest.viewedAt,
-            viewCount: updatedGuest.viewCount,
-          },
-        };
+        viewTrackingOps.push(
+          prisma.guest.update({
+            where: { id: matchedGuest.id },
+            data: {
+              viewedAt: matchedGuest.viewedAt ?? new Date(),
+              viewCount: { increment: 1 },
+            },
+          }),
+        );
       }
+    }
+
+    const results = await prisma.$transaction(viewTrackingOps);
+    if (matchedGuest) {
+      // results[1] is the updated guest (analytics row is results[0])
+      const updatedGuest = results[1] as typeof matchedGuest;
+      guestData = {
+        name: updatedGuest.name,
+        personalization: {
+          customMessage: updatedGuest.customMessage,
+          sharedPhoto: updatedGuest.sharedPhoto,
+        },
+        rsvp: {
+          status: updatedGuest.rsvpStatus,
+          attendees: updatedGuest.rsvpAttendees,
+        },
+        view: {
+          firstViewedAt: updatedGuest.viewedAt,
+          viewCount: updatedGuest.viewCount,
+        },
+      };
     }
 
     res.json({

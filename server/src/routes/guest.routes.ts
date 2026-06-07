@@ -6,9 +6,35 @@ import QRCode from 'qrcode';
 
 const router = express.Router();
 
+const MAX_BULK_IMPORT = 1000;
+
 const generateGuestToken = (): string => {
   return crypto.randomBytes(16).toString('hex');
 };
+
+// Find a guest by id, verify ownership, and send 403/404 if not. Returns
+// the guest (with invitation.userId + invitation.slug selected) on success,
+// or null after sending the response. Callers must `return` on null.
+async function findGuestForUser(
+  id: string,
+  userId: string,
+  res: express.Response,
+): Promise<(Awaited<ReturnType<typeof prisma.guest.findUnique>> & { invitation: { userId: string; slug: string } }) | null> {
+  const guest = await prisma.guest.findUnique({
+    where: { id },
+    include: { invitation: { select: { userId: true, slug: true } } },
+  });
+  if (!guest) {
+    res.status(404).json({ error: 'Guest not found' });
+    return null;
+  }
+  const guestAny = guest as any;
+  if (guestAny.invitation.userId !== userId) {
+    res.status(403).json({ error: 'Not authorized' });
+    return null;
+  }
+  return guestAny;
+}
 
 const buildGuestInviteUrl = (
   req: express.Request,
@@ -116,6 +142,15 @@ router.post('/bulk', authenticate, async (req, res, next) => {
     const { invitationId, guests: guestList } = req.body;
     const userId = (req as any).userId;
 
+    if (!Array.isArray(guestList)) {
+      return res.status(400).json({ error: 'guests must be an array' });
+    }
+    if (guestList.length > MAX_BULK_IMPORT) {
+      return res.status(400).json({
+        error: `Bulk import exceeds maximum of ${MAX_BULK_IMPORT} rows (got ${guestList.length})`,
+      });
+    }
+
     const invitation = await prisma.invitation.findFirst({
       where: { id: invitationId, userId },
     });
@@ -196,19 +231,10 @@ router.get('/:id/qr-info', authenticate, async (req, res, next) => {
     const id = req.params.id as string;
     const userId = (req as any).userId;
 
-    const guest = await prisma.guest.findUnique({
-      where: { id },
-      include: { invitation: { select: { userId: true, slug: true } } },
-    });
-    if (!guest) {
-      return res.status(404).json({ error: 'Guest not found' });
-    }
-    const guestAny = guest as any;
-    if (guestAny.invitation.userId !== userId) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
+    const guest = await findGuestForUser(id, userId, res);
+    if (!guest) return;
 
-    const url = buildGuestInviteUrl(req, guestAny.invitation, guest.token);
+    const url = buildGuestInviteUrl(req, guest.invitation, guest.token);
 
     res.json({
       guestId: guest.id,
@@ -239,19 +265,10 @@ router.get('/:id/qr', authenticate, async (req, res, next) => {
       return res.status(400).json({ error: 'format must be "png" or "svg"' });
     }
 
-    const guest = await prisma.guest.findUnique({
-      where: { id },
-      include: { invitation: { select: { userId: true, slug: true } } },
-    });
-    if (!guest) {
-      return res.status(404).json({ error: 'Guest not found' });
-    }
-    const guestAny = guest as any;
-    if (guestAny.invitation.userId !== userId) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
+    const guest = await findGuestForUser(id, userId, res);
+    if (!guest) return;
 
-    const url = buildGuestInviteUrl(req, guestAny.invitation, guest.token);
+    const url = buildGuestInviteUrl(req, guest.invitation, guest.token);
 
     if (format === 'svg') {
       const svg = await QRCode.toString(url, {
@@ -293,17 +310,8 @@ router.post('/:id/regenerate-token', authenticate, async (req, res, next) => {
     const id = req.params.id as string;
     const userId = (req as any).userId;
 
-    const guest = await prisma.guest.findUnique({
-      where: { id },
-      include: { invitation: { select: { userId: true } } },
-    });
-    if (!guest) {
-      return res.status(404).json({ error: 'Guest not found' });
-    }
-    const guestAny = guest as any;
-    if (guestAny.invitation.userId !== userId) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
+    const guest = await findGuestForUser(id, userId, res);
+    if (!guest) return;
 
     // Race protection: only update if the token is still the one we just read.
     // If a concurrent request beat us, the update affects 0 rows and we 409.
@@ -324,7 +332,7 @@ router.post('/:id/regenerate-token', authenticate, async (req, res, next) => {
     res.json({
       guestId: updated.id,
       token: updated.token,
-      url: buildGuestInviteUrl(req, guestAny.invitation, updated.token),
+      url: buildGuestInviteUrl(req, guest.invitation, updated.token),
     });
   } catch (error) {
     next(error);
