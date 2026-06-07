@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Demo CTA passes ?template=X to drop user into register mode
+  const startInRegisterMode = searchParams.has('template') || searchParams.get('mode') === 'register';
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -12,7 +15,7 @@ export default function AuthPage() {
     }
   }, [navigate]);
 
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(!startInRegisterMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [groomName, setGroomName] = useState('');
@@ -55,8 +58,9 @@ export default function AuthPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -66,8 +70,9 @@ export default function AuthPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -80,8 +85,9 @@ export default function AuthPage() {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên chú rể</label>
+                  <label htmlFor="groomName" className="block text-sm font-medium text-gray-700 mb-1">Tên chú rể</label>
                   <input
+                    id="groomName"
                     type="text"
                     value={groomName}
                     onChange={(e) => setGroomName(e.target.value)}
@@ -90,8 +96,9 @@ export default function AuthPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên cô dâu</label>
+                  <label htmlFor="brideName" className="block text-sm font-medium text-gray-700 mb-1">Tên cô dâu</label>
                   <input
+                    id="brideName"
                     type="text"
                     value={brideName}
                     onChange={(e) => setBrideName(e.target.value)}
@@ -101,8 +108,9 @@ export default function AuthPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ngày cưới</label>
+                <label htmlFor="weddingDate" className="block text-sm font-medium text-gray-700 mb-1">Ngày cưới</label>
                 <input
+                  id="weddingDate"
                   type="date"
                   value={weddingDate}
                   onChange={(e) => setWeddingDate(e.target.value)}
