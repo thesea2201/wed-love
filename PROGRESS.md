@@ -36,7 +36,7 @@
 |---|------|--------|-------|
 | 2.1 | Excel/CSV guest import | ✅ DONE | UI shipped: 4-step wizard (upload → map → preview → dedupe). See `client/src/components/guest-import/` |
 | 2.2 | QR code per guest | ✅ DONE | Per-guest QR PNG/SVG via `qrcode` lib. Track `viewedAt` + `viewCount` on first public view. Token can be rotated to invalidate leaked links. Token rotation now uses `useConfirm` modal instead of `window.confirm`. |
-| 2.3 | More templates (5 total) | ✅ DONE | 5 templates (cinematic, elegant, modern, minimal, vintage) with distinct section composition, colors, fonts. Server presets + admin picker wired. Live template change updates sections instantly. Fonts loaded. |
+| 2.3 | More templates (5 total) | ✅ DONE | 5 templates (cinematic, elegant, modern, minimal, vintage) with distinct section composition, colors, fonts. Server presets + admin picker wired. Live template change updates sections instantly. Fonts loaded. Landing page has a 5-card template gallery with per-template CSS mini-previews; each card links to `/demo/:templateId` which renders the template with sample data. |
 | 2.4 | Music player on invitation | ✅ DONE | Floating bottom-right widget with autoplay-with-retry (2s delay, handles browser block), 2s fade-in volume ramp, mute toggle, persisted play/pause across sections. Music URL + autoplay + fade-in are invitation-level (not section config). |
 | 2.5 | Gallery section | ✅ DONE | Photo grid with lightbox: prev/next arrows, keyboard nav, swipe, photo counter, fade animations, scroll lock, adjacent image preload. |
 | 2.6 | Countdown timer | ✅ DONE | Wired to real `invitation.weddingDate` (no longer hard-coded). Days/hours/minutes/seconds. Past dates show "Hôm nay là ngày vui" message. Configurable style/seconds/labels. |
