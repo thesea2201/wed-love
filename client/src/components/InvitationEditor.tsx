@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../utils/api';
+import { formatRelativeTime } from '../utils/relative-time';
 import type { InvitationData, SectionConfig } from '../types';
 import ContentTab from './invitation-editor/ContentTab';
 import DesignTab from './invitation-editor/DesignTab';
@@ -23,7 +24,15 @@ export default function InvitationEditor({ invitationId }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [, setNowTick] = useState(0);
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (!lastSavedAt) return;
+    const id = setInterval(() => setNowTick((n) => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, [lastSavedAt]);
 
   // Fetch invitation data
   useEffect(() => {
@@ -98,6 +107,7 @@ export default function InvitationEditor({ invitationId }: Props) {
 
       setOriginal(draft);
       setHasChanges(false);
+      setLastSavedAt(Date.now());
     } catch (err: any) {
       console.error('Failed to save:', err);
       setSaveError(err.response?.data?.error || 'Lưu thay đổi thất bại');
@@ -105,6 +115,20 @@ export default function InvitationEditor({ invitationId }: Props) {
       setIsSaving(false);
     }
   };
+
+  const handleSaveRef = useRef<() => Promise<void>>(handleSave);
+  handleSaveRef.current = handleSave;
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key !== 's' || e.altKey || e.shiftKey) return;
+      if (isSaving || !hasChanges) return;
+      e.preventDefault();
+      handleSaveRef.current();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isSaving, hasChanges]);
 
   // Publish invitation
   const handlePublish = async () => {
@@ -209,6 +233,8 @@ export default function InvitationEditor({ invitationId }: Props) {
             <button
               onClick={handleSave}
               disabled={isSaving || !hasChanges}
+              title={hasChanges ? 'Lưu thay đổi (Cmd/Ctrl+S)' : 'Đã lưu'}
+              aria-label={hasChanges ? 'Lưu thay đổi' : `Đã lưu ${lastSavedAt ? formatRelativeTime(lastSavedAt) : ''}`}
               className="flex-1 sm:w-full py-2 sm:py-2.5 px-3 bg-white border border-gray-300 text-gray-700 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isSaving ? (
@@ -220,11 +246,14 @@ export default function InvitationEditor({ invitationId }: Props) {
                 <span className="flex items-center justify-center gap-1">
                   <span>💾</span>
                   <span>Lưu</span>
+                  <kbd className="hidden sm:inline-block ml-1 px-1.5 py-0.5 text-[10px] font-mono bg-gray-100 border border-gray-200 rounded text-gray-500">
+                    ⌘S
+                  </kbd>
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-1">
                   <span>✓</span>
-                  <span>Đã lưu</span>
+                  <span data-testid="save-status">Đã lưu {lastSavedAt ? formatRelativeTime(lastSavedAt) : ''}</span>
                 </span>
               )}
             </button>

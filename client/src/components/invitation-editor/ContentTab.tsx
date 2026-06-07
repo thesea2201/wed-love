@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ContentTabProps } from './types';
+import CharCounter from './CharCounter';
 
 export default function ContentTab({ draft, onChange }: ContentTabProps) {
   const [showAIAssistant, setShowAIAssistant] = useState(false);
@@ -60,9 +61,11 @@ export default function ContentTab({ draft, onChange }: ContentTabProps) {
               value={draft.groomName}
               onChange={(e) => onChange({ groomName: e.target.value })}
               placeholder="Ví dụ: An"
+              maxLength={100}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               required
             />
+            <CharCounter current={draft.groomName.length} max={100} />
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-2">
@@ -73,9 +76,11 @@ export default function ContentTab({ draft, onChange }: ContentTabProps) {
               value={draft.brideName}
               onChange={(e) => onChange({ brideName: e.target.value })}
               placeholder="Ví dụ: Linh"
+              maxLength={100}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               required
             />
+            <CharCounter current={draft.brideName.length} max={100} />
           </div>
         </div>
       </div>
@@ -93,12 +98,16 @@ export default function ContentTab({ draft, onChange }: ContentTabProps) {
               value={draft.title}
               onChange={(e) => onChange({ title: e.target.value })}
               placeholder="Ví dụ: An & Linh"
+              maxLength={200}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Hiển thị trên tab trình duyệt và khi share link
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-gray-500">
+                Hiển thị trên tab trình duyệt và khi share link
+              </p>
+              <CharCounter current={draft.title.length} max={200} />
+            </div>
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-2">
@@ -109,11 +118,15 @@ export default function ContentTab({ draft, onChange }: ContentTabProps) {
               value={draft.subtitle || ''}
               onChange={(e) => onChange({ subtitle: e.target.value || null })}
               placeholder="Ví dụ: Cùng hai bên gia đình"
+              maxLength={2000}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Hiển thị phía trên tên cô dâu chú rể. Mặc định: "Cùng hai bên gia đình"
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-gray-500">
+                Hiển thị phía trên tên cô dâu chú rể. Mặc định: "Cùng hai bên gia đình"
+              </p>
+              <CharCounter current={(draft.subtitle || '').length} max={2000} />
+            </div>
           </div>
         </div>
       </div>
@@ -151,8 +164,10 @@ export default function ContentTab({ draft, onChange }: ContentTabProps) {
               value={draft.venue || ''}
               onChange={(e) => onChange({ venue: e.target.value || null })}
               placeholder="Ví dụ: Trống Đồng Palace"
+              maxLength={2000}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
+            <CharCounter current={(draft.venue || '').length} max={2000} />
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-2">Địa chỉ đầy đủ</label>
@@ -160,9 +175,13 @@ export default function ContentTab({ draft, onChange }: ContentTabProps) {
               value={draft.venueAddress || ''}
               onChange={(e) => onChange({ venueAddress: e.target.value || null })}
               placeholder="Ví dụ: 135A Nguyễn Hữu Cảnh, Quận 1, TP.HCM"
+              maxLength={2000}
               rows={3}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none"
             />
+            <div className="flex justify-end mt-1">
+              <CharCounter current={(draft.venueAddress || '').length} max={2000} />
+            </div>
           </div>
         </div>
       </div>
@@ -178,8 +197,10 @@ export default function ContentTab({ draft, onChange }: ContentTabProps) {
               value={draft.ceremonyTime || ''}
               onChange={(e) => onChange({ ceremonyTime: e.target.value || null })}
               placeholder="Ví dụ: 9:00 sáng"
+              maxLength={2000}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
+            <CharCounter current={(draft.ceremonyTime || '').length} max={2000} />
           </div>
           <div>
             <label className="block text-sm text-gray-600 mb-2">Tiệc cưới</label>
@@ -188,8 +209,10 @@ export default function ContentTab({ draft, onChange }: ContentTabProps) {
               value={draft.receptionTime || ''}
               onChange={(e) => onChange({ receptionTime: e.target.value || null })}
               placeholder="Ví dụ: 6:00 chiều"
+              maxLength={2000}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
             />
+            <CharCounter current={(draft.receptionTime || '').length} max={2000} />
           </div>
         </div>
       </div>
@@ -244,12 +267,16 @@ export default function ContentTab({ draft, onChange }: ContentTabProps) {
           value={draft.story || ''}
           onChange={(e) => onChange({ story: e.target.value || null })}
           placeholder="Chia sẻ câu chuyện tình yêu của hai bạn..."
+          maxLength={2000}
           rows={8}
           className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-y"
         />
-        <p className="text-xs text-gray-500 mt-2">
-          Hỗ trợ xuống dòng. Mỗi đoạn văn sẽ được hiển thị riêng biệt.
-        </p>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-xs text-gray-500">
+            Hỗ trợ xuống dòng. Mỗi đoạn văn sẽ được hiển thị riêng biệt.
+          </p>
+          <CharCounter current={(draft.story || '').length} max={2000} />
+        </div>
       </div>
     </div>
   );
