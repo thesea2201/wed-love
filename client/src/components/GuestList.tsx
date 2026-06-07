@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import ImportGuestsModal from './guest-import/ImportGuestsModal';
+import { useToast } from './Toast';
+import { useConfirm } from './ConfirmDialog';
 
 interface Guest {
   id: string;
@@ -27,6 +29,8 @@ interface Props {
 }
 
 export default function GuestList({ invitationId }: Props) {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -132,14 +136,21 @@ export default function GuestList({ invitationId }: Props) {
 
   const handleRegenerateToken = async () => {
     if (!qrGuest) return;
-    if (!confirm('Regenerate token? Existing QR codes and links for this guest will stop working.')) return;
+    const ok = await confirm({
+      title: 'Xoay mã QR',
+      message: 'Tạo mã QR mới? Mã cũ và link cũ sẽ ngừng hoạt động.',
+      confirmLabel: 'Tạo mới',
+      variant: 'danger',
+    });
+    if (!ok) return;
     setRegenerating(true);
     try {
       await api.post(`/guests/${qrGuest.id}/regenerate-token`);
       const res = await api.get(`/guests/${qrGuest.id}/qr-info`);
       setQrInfo(res.data);
+      toast.success('Đã tạo mã QR mới');
     } catch (err: any) {
-      alert(err?.response?.data?.error || 'Failed to regenerate token');
+      toast.error(err?.response?.data?.error || 'Không thể tạo mã QR mới');
     } finally {
       setRegenerating(false);
     }
@@ -152,7 +163,7 @@ export default function GuestList({ invitationId }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      alert('Copy failed — long-press the link to copy manually');
+      toast.error('Copy failed — long-press the link to copy manually');
     }
   };
 

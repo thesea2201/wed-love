@@ -2,6 +2,7 @@ import { useRef, useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { uploadFile } from '../utils/upload';
 import MediaLibraryModal from './MediaLibraryModal';
+import { useToast } from './Toast';
 
 interface Props {
   currentUrl?: string;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function ImageUpload({ currentUrl, gallery = [], onUpload, onAddToGallery, label = 'Upload Image' }: Props) {
+  const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(currentUrl || '');
@@ -30,8 +32,7 @@ export default function ImageUpload({ currentUrl, gallery = [], onUpload, onAddT
       onUpload(publicUrl);
       if (onAddToGallery) onAddToGallery([publicUrl]);
     } catch (err: any) {
-      // Show error to user - you might want to integrate with a toast/notification system
-      alert(`Upload failed: ${err.message}`);
+      toast.error(`Upload failed: ${err.message}`);
       console.error('Upload failed:', err);
     }
 
