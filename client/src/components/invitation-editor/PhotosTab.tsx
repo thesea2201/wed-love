@@ -4,6 +4,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEn
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { uploadFiles, type UploadResult } from '../../utils/upload';
+import { useConfirm } from '../ConfirmDialog';
 import type { SectionConfig } from '../../types';
 
 interface Props {
@@ -66,6 +67,7 @@ function SortableImage({ url, index, onRemove, usage }: { url: string; index: nu
 }
 
 export default function PhotosTab({ gallery, onChange, coverPhoto, sections }: Props) {
+  const confirm = useConfirm();
   const [uploads, setUploads] = useState<{ file: File; progress: number; result?: UploadResult; error?: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -124,12 +126,19 @@ export default function PhotosTab({ gallery, onChange, coverPhoto, sections }: P
     setIsUploading(false);
   };
 
-  const handleRemove = (index: number) => {
+  const handleRemove = async (index: number) => {
     const url = gallery[index];
     const usage = getImageUsage(url, coverPhoto, sections);
     if (usage.length > 0) {
       const names = usage.map((u) => u === 'hero' ? 'Hero' : u === 'story' ? 'Story' : 'Gallery').join(', ');
-      if (!window.confirm(`\u1ea2nh n\u00e0y \u0111ang \u0111\u01b0\u1ee3c d\u00f9ng \u1edf: ${names}. X\u00f3a s\u1ebd b\u1ecf \u1ea3nh kh\u1ecfi c\u00e1c section \u0111\u00f3. Ti\u1ebfp t\u1ee5c?`)) return;
+      const ok = await confirm({
+        title: 'Ảnh đang được sử dụng',
+        message: `Ảnh này đang được dùng ở: ${names}. Xóa sẽ bỏ ảnh khỏi các section đó. Tiếp tục?`,
+        confirmLabel: 'Xóa',
+        cancelLabel: 'Hủy',
+        variant: 'danger',
+      });
+      if (!ok) return;
     }
     const updated = [...gallery];
     updated.splice(index, 1);
