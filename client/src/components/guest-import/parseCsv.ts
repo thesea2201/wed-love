@@ -72,7 +72,6 @@ function autoMapHeader(header: string): GuestField | null {
 }
 
 const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const PHONE_REGEX = /^[+\d][\d\s-]{7,19}$/;
 
 function validateRow(row: Record<string, string>, rowIndex: number): GuestRow {
   const errors: string[] = [];
@@ -94,8 +93,6 @@ function validateRow(row: Record<string, string>, rowIndex: number): GuestRow {
   if (phone) {
     const phoneDigits = phone.replace(/[\s+\-]/g, '');
     if (!/^\d+$/.test(phoneDigits) || phoneDigits.length < 8 || phoneDigits.length > 15) {
-      errors.push('SĐT không hợp lệ');
-    } else if (!PHONE_REGEX.test(phone)) {
       errors.push('SĐT không hợp lệ');
     }
   }
