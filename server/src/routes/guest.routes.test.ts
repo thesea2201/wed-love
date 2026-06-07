@@ -243,7 +243,10 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
       expect(response.body.failed.length).toBe(0);
     });
 
-    it('should report failed rows (missing name)', async () => {
+    it('should reject the whole request when any row is missing a name (400)', async () => {
+      // Zod per-row validation now rejects the whole request upfront instead
+      // of partial-import + failure-list. All-or-nothing is stricter and
+      // surfaces the bad row in the response body.
       const response = await request(app)
         .post('/guests/bulk')
         .set('Authorization', `Bearer ${authToken}`)
@@ -256,11 +259,12 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
           ],
         });
 
-      expect(response.status).toBe(200);
-      expect(response.body.imported).toBe(2);
-      expect(response.body.failed.length).toBe(1);
-      expect(response.body.failed[0].row).toBe(2);
-      expect(response.body.failed[0].reason).toBe('Name is required');
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details.guests).toBeDefined();
+      // Nothing inserted
+      const count = await prisma.guest.count({ where: { invitationId: testInvitation.id } });
+      expect(count).toBe(0);
     });
 
     it('should reject without auth (401)', async () => {
@@ -274,7 +278,7 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
       expect(response.status).toBe(401);
     });
 
-    it('should reject when guests is not an array (400)', async () => {
+    it('should reject when guests is not an array (400 — Zod)', async () => {
       const response = await request(app)
         .post('/guests/bulk')
         .set('Authorization', `Bearer ${authToken}`)
@@ -284,10 +288,11 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body).toHaveProperty('error', 'guests must be an array');
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details.guests).toBeDefined();
     });
 
-    it('should reject when guests exceeds MAX_BULK_IMPORT (400)', async () => {
+    it('should reject when guests exceeds 1000 rows (400 — Zod cap)', async () => {
       const oversized = Array.from({ length: 1001 }, (_, i) => ({ name: `Guest ${i}` }));
       const response = await request(app)
         .post('/guests/bulk')
@@ -298,10 +303,74 @@ describe('Guest Routes - CRUD + Public RSVP', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toMatch(/exceeds maximum of 1000 rows/);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details.guests).toBeDefined();
       // Verify nothing was inserted
       const count = await prisma.guest.count({ where: { invitationId: testInvitation.id } });
       expect(count).toBe(0);
+    });
+  });
+
+  // ─── ZOD VALIDATION ───
+  describe('Zod input validation', () => {
+    it('POST /guests with missing name (400)', async () => {
+      const response = await request(app)
+        .post('/guests')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ invitationId: testInvitation.id, email: 'a@b.com' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details.name).toBeDefined();
+    });
+
+    it('POST /guests with malformed email (400)', async () => {
+      const response = await request(app)
+        .post('/guests')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ invitationId: testInvitation.id, name: 'Test', email: 'not-an-email' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details.email).toBeDefined();
+    });
+
+    it('POST /guests/:token/rsvp with invalid status enum (400)', async () => {
+      const rsvpGuest = await prisma.guest.create({
+        data: {
+          invitationId: testInvitation.id,
+          token: 'rsvp-validation-test-token',
+          name: 'RSVP Validation Guest',
+          rsvpStatus: 'pending',
+        },
+      });
+
+      const response = await request(app)
+        .post(`/guests/${rsvpGuest.token}/rsvp`)
+        .send({ status: 'maybe' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details.status).toBeDefined();
+    });
+
+    it('POST /guests/:token/rsvp with negative attendees (400)', async () => {
+      const rsvpGuest = await prisma.guest.create({
+        data: {
+          invitationId: testInvitation.id,
+          token: 'rsvp-negative-test-token',
+          name: 'RSVP Negative',
+          rsvpStatus: 'pending',
+        },
+      });
+
+      const response = await request(app)
+        .post(`/guests/${rsvpGuest.token}/rsvp`)
+        .send({ status: 'attending', attendees: -1 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details.attendees).toBeDefined();
     });
   });
 

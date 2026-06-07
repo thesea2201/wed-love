@@ -1,12 +1,13 @@
 import express from 'express';
 import { prisma } from '../config/database';
 import { authenticate } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+import { createGuestSchema, bulkGuestSchema, rsvpSchema } from '../schemas';
+import type { z } from 'zod';
 import crypto from 'crypto';
 import QRCode from 'qrcode';
 
 const router = express.Router();
-
-const MAX_BULK_IMPORT = 1000;
 
 const generateGuestToken = (): string => {
   return crypto.randomBytes(16).toString('hex');
@@ -61,7 +62,7 @@ const buildGuestInviteUrl = (
 };
 
 // Add single guest
-router.post('/', authenticate, async (req, res, next) => {
+router.post('/', authenticate, validate(createGuestSchema), async (req, res, next) => {
   try {
     const { invitationId, name, email, phone, customMessage, sharedPhoto, tableNumber } = req.body;
     const userId = (req as any).userId;
@@ -137,19 +138,10 @@ router.get('/', authenticate, async (req, res, next) => {
 });
 
 // Bulk import guests
-router.post('/bulk', authenticate, async (req, res, next) => {
+router.post('/bulk', authenticate, validate(bulkGuestSchema), async (req, res, next) => {
   try {
     const { invitationId, guests: guestList } = req.body;
     const userId = (req as any).userId;
-
-    if (!Array.isArray(guestList)) {
-      return res.status(400).json({ error: 'guests must be an array' });
-    }
-    if (guestList.length > MAX_BULK_IMPORT) {
-      return res.status(400).json({
-        error: `Bulk import exceeds maximum of ${MAX_BULK_IMPORT} rows (got ${guestList.length})`,
-      });
-    }
 
     const invitation = await prisma.invitation.findFirst({
       where: { id: invitationId, userId },
@@ -158,43 +150,29 @@ router.post('/bulk', authenticate, async (req, res, next) => {
       return res.status(404).json({ error: 'Invitation not found' });
     }
 
-    const results = { imported: 0, failed: [] as any[] };
-    const guestsToInsert = [];
+    const guestsToInsert = guestList.map((g: z.infer<typeof bulkGuestSchema>['guests'][number]) => ({
+      invitationId,
+      token: generateGuestToken(),
+      name: g.name,
+      email: g.email || null,
+      phone: g.phone || null,
+      customMessage: g.customMessage || null,
+      sharedPhoto: g.sharedPhoto || null,
+      tableNumber: g.tableNumber ?? null,
+    }));
 
-    for (let i = 0; i < guestList.length; i++) {
-      const guestData = guestList[i];
-      if (!guestData.name) {
-        results.failed.push({ row: i + 1, reason: 'Name is required' });
-        continue;
-      }
+    const result = await prisma.guest.createMany({ data: guestsToInsert });
 
-      guestsToInsert.push({
-        invitationId,
-        token: generateGuestToken(),
-        name: guestData.name,
-        email: guestData.email || null,
-        phone: guestData.phone || null,
-        customMessage: guestData.customMessage || null,
-        sharedPhoto: guestData.sharedPhoto || null,
-        tableNumber: guestData.tableNumber || null,
-      });
-      results.imported++;
-    }
-
-    if (guestsToInsert.length > 0) {
-      await prisma.guest.createMany({ data: guestsToInsert });
-    }
-
-    res.json(results);
+    res.json({ imported: result.count, failed: [] });
   } catch (error) {
     next(error);
   }
 });
 
 // Public RSVP endpoint
-router.post('/:token/rsvp', async (req, res, next) => {
+router.post('/:token/rsvp', validate(rsvpSchema), async (req, res, next) => {
   try {
-    const { token } = req.params;
+    const { token } = req.params as { token: string };
     const { status, attendees, dietary } = req.body;
 
     const guest = await prisma.guest.findUnique({ where: { token } });

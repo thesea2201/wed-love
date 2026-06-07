@@ -185,12 +185,41 @@ describe('Auth Routes - Registration, Login, User Profile', () => {
       expect(response.body).toHaveProperty('error', 'Invalid credentials');
     });
 
-    it('should reject login with empty password', async () => {
+    it('should reject login with empty password (400 — Zod validation)', async () => {
       const response = await request(app)
         .post('/auth/login')
         .send({ email: TEST_EMAIL, password: '' });
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('error', 'Validation failed');
+    });
+
+    it('should reject register with bad email format (400 — Zod)', async () => {
+      const response = await request(app).post('/auth/register').send({
+        email: 'not-an-email',
+        password: TEST_PASSWORD,
+        groomName: TEST_GROOM,
+        brideName: TEST_BRIDE,
+        weddingDate: TEST_WEDDING_DATE,
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details.email).toBeDefined();
+    });
+
+    it('should reject register with short password (400 — Zod)', async () => {
+      const response = await request(app).post('/auth/register').send({
+        email: 'short-pw@example.com',
+        password: 'abc',
+        groomName: TEST_GROOM,
+        brideName: TEST_BRIDE,
+        weddingDate: TEST_WEDDING_DATE,
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body.details.password).toBeDefined();
     });
   });
 

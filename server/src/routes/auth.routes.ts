@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../config/database';
 import { authenticate } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+import { registerSchema, loginSchema } from '../schemas';
 
 const router = express.Router();
 
@@ -13,7 +15,7 @@ const generateToken = (userId: string): string => {
 };
 
 // Register
-router.post('/register', async (req, res, next) => {
+router.post('/register', validate(registerSchema), async (req, res, next) => {
   try {
     const { email, password, groomName, brideName, weddingDate } = req.body;
 
@@ -52,7 +54,7 @@ router.post('/register', async (req, res, next) => {
 });
 
 // Login
-router.post('/login', async (req, res, next) => {
+router.post('/login', validate(loginSchema), async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
