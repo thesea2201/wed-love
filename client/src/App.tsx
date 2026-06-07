@@ -4,6 +4,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AuthPage from './pages/AuthPage';
 import LandingPage from './pages/LandingPage';
 import DemoView from './pages/DemoView';
+import SettingsPage from './pages/SettingsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
@@ -17,6 +18,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/invitation/:slug" element={<InvitationView />} />
       <Route path="/demo/:templateId" element={<DemoView />} />
     </Routes>
