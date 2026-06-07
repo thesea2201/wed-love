@@ -46,7 +46,7 @@ describe('api.ts — Axios instance with interceptors', () => {
       const { default: freshApi } = await import('./api');
 
       const config = { headers: {} as any };
-      const result = await freshApi.interceptors.request.handlers[0].fulfilled(config);
+      const result = await (freshApi as any).interceptors.request.handlers[0].fulfilled(config);
       expect(result.headers.Authorization).toBe('Bearer test-token-123');
     });
 
@@ -57,7 +57,7 @@ describe('api.ts — Axios instance with interceptors', () => {
       const { default: freshApi } = await import('./api');
 
       const config = { headers: {} as any };
-      const result = await freshApi.interceptors.request.handlers[0].fulfilled(config);
+      const result = await (freshApi as any).interceptors.request.handlers[0].fulfilled(config);
       expect(result.headers.Authorization).toBeUndefined();
     });
   });
@@ -76,7 +76,7 @@ describe('api.ts — Axios instance with interceptors', () => {
 
       // The error interceptor should call localStorage.removeItem and redirect
       try {
-        await freshApi.interceptors.response.handlers[0].rejected(errorResponse);
+        await (freshApi as any).interceptors.response.handlers[0].rejected(errorResponse);
       } catch {
         // Expected to reject
       }
@@ -91,7 +91,7 @@ describe('api.ts — Axios instance with interceptors', () => {
       };
 
       try {
-        await api.interceptors.response.handlers[0].rejected(errorResponse);
+        await (api as any).interceptors.response.handlers[0].rejected(errorResponse);
       } catch {
         // Expected
       }

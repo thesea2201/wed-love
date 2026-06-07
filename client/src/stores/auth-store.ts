@@ -20,6 +20,7 @@ interface AuthStore {
   logout: () => void;
 }
 
+export type { User };
 export const useAuthStore = create<AuthStore>((set) => ({
   token: localStorage.getItem('token'),
   user: null,

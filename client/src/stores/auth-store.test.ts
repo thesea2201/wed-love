@@ -45,7 +45,7 @@ describe('auth-store.ts — Zustand Auth Store', () => {
   });
 
   // Helper to get mocked api
-  async function getMockedApi() {
+  async function getMockedApi(): Promise<any> {
     const apiModule = await import('../utils/api');
     return apiModule.default;
   }
