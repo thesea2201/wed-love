@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DemoView from './DemoView';
@@ -25,6 +25,7 @@ function renderDemo(initialPath: string) {
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route path="/demo/:templateId" element={<DemoView />} />
+          <Route path="/login" element={<div data-testid="login-page">Login</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -35,6 +36,11 @@ describe('DemoView', () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
   });
 
   it('renders SectionRenderer with the chosen template', () => {
@@ -44,47 +50,82 @@ describe('DemoView', () => {
     expect(screen.getByTestId('renderer-slug')).toHaveTextContent('demo-cinematic');
   });
 
-  it('uses a wedding date 30 days in the future (so the countdown always renders)', () => {
-    renderDemo('/demo/elegant');
-    const slug = screen.getByTestId('renderer-slug').textContent;
-    // slug is "demo-elegant" — sanity check
-    expect(slug).toBe('demo-elegant');
-  });
-
   it('falls back to cinematic preset when the template id is unknown', () => {
     renderDemo('/demo/unknown-template');
     expect(screen.getByTestId('renderer-template')).toHaveTextContent('unknown-template');
-    // Should not crash and should still render some sections (the cinematic fallback)
     expect(screen.getByTestId('section-renderer')).toBeInTheDocument();
   });
 
   it('passes the right number of sections for each template preset', () => {
-    // cinematic preset has 7 sections
     renderDemo('/demo/cinematic');
     expect(screen.getByTestId('renderer-section-count')).toHaveTextContent('7');
 
     cleanup();
-
-    // minimal preset has 3 sections
     renderDemo('/demo/minimal');
     expect(screen.getByTestId('renderer-section-count')).toHaveTextContent('3');
 
     cleanup();
-
-    // modern preset has 5 sections
     renderDemo('/demo/modern');
     expect(screen.getByTestId('renderer-section-count')).toHaveTextContent('5');
   });
 
-  it('shows a demo banner with a back-to-home link', () => {
+  it('shows a sticky top bar with template name', () => {
+    renderDemo('/demo/elegant');
+    const topBar = screen.getByRole('region', { name: /thanh điều hướng demo/i });
+    expect(topBar).toBeInTheDocument();
+    expect(topBar).toHaveTextContent('Thanh lịch');
+    expect(topBar).toHaveTextContent('Elegant');
+  });
+
+  it('shows a back-to-home link in the top bar', () => {
     renderDemo('/demo/vintage');
-    const back = screen.getByRole('link', { name: /về trang chủ/i });
+    const back = screen.getByRole('link', { name: /về trang chủ|trang chủ/i });
     expect(back).toHaveAttribute('href', '/');
   });
 
-  it('shows a CTA to login from the demo banner', () => {
+  it('shows a "Dùng template này" CTA pointing to /login?template=X', () => {
     renderDemo('/demo/cinematic');
-    const cta = screen.getByRole('link', { name: /tạo thiệp của bạn/i });
-    expect(cta).toHaveAttribute('href', '/login');
+    const cta = screen.getByTestId('use-template-cta');
+    expect(cta).toHaveTextContent(/Dùng template này/);
+    expect(cta).toHaveAttribute('href', '/login?template=cinematic');
+  });
+
+  it('shows prev/next template buttons between templates', () => {
+    renderDemo('/demo/cinematic');
+    // cinematic is index 0 → has next, no prev
+    expect(screen.queryByTestId('prev-template')).not.toBeInTheDocument();
+    expect(screen.getByTestId('next-template')).toBeInTheDocument();
+
+    cleanup();
+    renderDemo('/demo/elegant');
+    // elegant is index 1 → has both
+    expect(screen.getByTestId('prev-template')).toBeInTheDocument();
+    expect(screen.getByTestId('next-template')).toBeInTheDocument();
+
+    cleanup();
+    renderDemo('/demo/vintage');
+    // vintage is the last index → has prev, no next
+    expect(screen.getByTestId('prev-template')).toBeInTheDocument();
+    expect(screen.queryByTestId('next-template')).not.toBeInTheDocument();
+  });
+
+  it('shows the first-visit hint overlay when localStorage flag is unset', () => {
+    renderDemo('/demo/cinematic');
+    expect(screen.getByTestId('demo-hint')).toBeInTheDocument();
+    expect(screen.getByText(/Mẹo nhỏ/)).toBeInTheDocument();
+  });
+
+  it('hides the hint overlay when already dismissed', () => {
+    localStorage.setItem('wedlove-demo-hint-dismissed', '1');
+    renderDemo('/demo/cinematic');
+    expect(screen.queryByTestId('demo-hint')).not.toBeInTheDocument();
+  });
+
+  it('dismisses the hint and persists to localStorage when X is clicked', () => {
+    renderDemo('/demo/cinematic');
+    const dismissBtn = screen.getByTestId('dismiss-hint');
+    fireEvent.click(dismissBtn);
+    expect(screen.queryByTestId('demo-hint')).not.toBeInTheDocument();
+    expect(localStorage.getItem('wedlove-demo-hint-dismissed')).toBe('1');
   });
 });

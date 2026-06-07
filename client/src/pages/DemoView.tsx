@@ -1,10 +1,13 @@
-import { useParams, Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { TEMPLATES, getSectionsForTemplate } from '../utils/sections';
 import { TEMPLATE_OPTIONS } from '../components/invitation-editor/types';
 import type { InvitationData } from '../types';
 import ThemeProvider from '../components/ThemeProvider';
 import SectionRenderer from '../components/sections/SectionRenderer';
+
+const HINT_DISMISSED_KEY = 'wedlove-demo-hint-dismissed';
 
 function buildSampleInvitation(templateId: string): InvitationData {
   const preset = TEMPLATES[templateId] || TEMPLATES.cinematic;
@@ -55,11 +58,44 @@ function buildSampleInvitation(templateId: string): InvitationData {
 
 export default function DemoView() {
   const { templateId = 'cinematic' } = useParams<{ templateId: string }>();
+  const navigate = useNavigate();
   const option = TEMPLATE_OPTIONS.find((t) => t.id === templateId);
+  const validOption = option ?? TEMPLATE_OPTIONS[0];
   const invitation = useMemo(() => buildSampleInvitation(templateId), [templateId]);
+
+  // Hint overlay: visible on first visit, dismissable
+  const [showHint, setShowHint] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return !localStorage.getItem(HINT_DISMISSED_KEY);
+  });
+
+  const dismissHint = () => {
+    setShowHint(false);
+    try {
+      localStorage.setItem(HINT_DISMISSED_KEY, '1');
+    } catch {
+      // ignore storage errors (private mode, quota, etc.)
+    }
+  };
+
+  // Template navigation: prev/next in the TEMPLATE_OPTIONS list
+  const currentIndex = TEMPLATE_OPTIONS.findIndex((t) => t.id === validOption.id);
+  const prevOption = currentIndex > 0 ? TEMPLATE_OPTIONS[currentIndex - 1] : null;
+  const nextOption =
+    currentIndex >= 0 && currentIndex < TEMPLATE_OPTIONS.length - 1
+      ? TEMPLATE_OPTIONS[currentIndex + 1]
+      : null;
 
   return (
     <ThemeProvider invitation={invitation}>
+      <Helmet>
+        <title>{validOption.nameVi} — Demo thiệp cưới | WedLove</title>
+        <meta
+          name="description"
+          content={`Xem thử thiệp cưới mẫu theo phong cách ${validOption.nameVi} của WedLove.`}
+        />
+      </Helmet>
+
       <div data-testid="demo-view" data-template={templateId}>
         <SectionRenderer
           sections={invitation.sections}
@@ -68,30 +104,93 @@ export default function DemoView() {
         />
       </div>
 
-      {/* Demo banner — overlaid so users know it's a sample and can return home */}
+      {/* Top sticky bar: back, template name, prev/next, CTA — replaces the old bottom banner */}
       <div
-        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900/95 text-white text-sm px-4 py-2.5 rounded-full shadow-2xl backdrop-blur"
-        role="status"
+        className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 shadow-sm"
+        role="region"
+        aria-label="Thanh điều hướng demo"
       >
-        <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" aria-hidden />
-        <span>
-          Đang xem thử: <strong>{option?.nameVi ?? templateId}</strong>
-        </span>
-        <span className="text-white/50">•</span>
-        <Link
-          to="/"
-          className="hover:text-rose-300 underline-offset-4 hover:underline"
-        >
-          ← Về trang chủ
-        </Link>
-        <span className="text-white/50">•</span>
-        <Link
-          to="/login"
-          className="hover:text-rose-300 underline-offset-4 hover:underline"
-        >
-          Tạo thiệp của bạn
-        </Link>
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Link
+              to="/"
+              className="text-sm text-gray-600 hover:text-gray-900 whitespace-nowrap"
+              aria-label="Về trang chủ"
+            >
+              ← Trang chủ
+            </Link>
+            <span className="text-gray-300 hidden sm:inline">|</span>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-500 leading-tight hidden sm:block">Đang xem thử</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {validOption.nameVi} <span className="text-gray-400 font-normal">({validOption.name})</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 sm:gap-2">
+            {prevOption && (
+              <button
+                onClick={() => navigate(`/demo/${prevOption.id}`)}
+                className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+                title={`Template trước: ${prevOption.nameVi}`}
+                data-testid="prev-template"
+              >
+                ← <span className="hidden sm:inline">{prevOption.nameVi}</span>
+              </button>
+            )}
+            {nextOption && (
+              <button
+                onClick={() => navigate(`/demo/${nextOption.id}`)}
+                className="text-xs sm:text-sm px-2 sm:px-3 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+                title={`Template tiếp: ${nextOption.nameVi}`}
+                data-testid="next-template"
+              >
+                <span className="hidden sm:inline">{nextOption.nameVi}</span> →
+              </button>
+            )}
+            <Link
+              to={`/login?template=${validOption.id}`}
+              className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 bg-gray-900 text-white rounded-md font-medium hover:bg-gray-800 whitespace-nowrap"
+              data-testid="use-template-cta"
+            >
+              Dùng template này
+            </Link>
+          </div>
+        </div>
       </div>
+
+      {/* First-visit hint overlay */}
+      {showHint && (
+        <div
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+          data-testid="demo-hint"
+          role="status"
+        >
+          <div className="bg-gray-900/95 text-white text-sm px-4 py-3 rounded-xl shadow-2xl backdrop-blur flex items-start gap-3">
+            <span className="text-lg" aria-hidden>
+              👆
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium mb-0.5">Mẹo nhỏ</p>
+              <p className="text-white/80 text-xs">
+                Cuộn xuống để xem đầy đủ các phần: hero, câu chuyện, sự kiện, album ảnh, đếm ngược.
+              </p>
+            </div>
+            <button
+              onClick={dismissHint}
+              className="text-white/70 hover:text-white text-lg leading-none"
+              aria-label="Đóng mẹo"
+              data-testid="dismiss-hint"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Spacer so the sticky top bar doesn't cover the first section */}
+      <div className="h-14" aria-hidden />
     </ThemeProvider>
   );
 }
