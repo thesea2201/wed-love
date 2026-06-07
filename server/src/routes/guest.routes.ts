@@ -18,9 +18,19 @@ const buildGuestInviteUrl = (
   // Prefer explicit public base URL from env, fall back to request host
   const hostHeader = req.get('host');
   const host = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
-  const baseUrl =
-    process.env.PUBLIC_BASE_URL ||
-    `${req.protocol}://${host || 'localhost'}`;
+  const envBase = process.env.PUBLIC_BASE_URL;
+  let baseUrl: string;
+  if (envBase) {
+    try {
+      // Validate env-set base URL parses; otherwise fall through to request host
+      new URL(envBase);
+      baseUrl = envBase;
+    } catch {
+      baseUrl = `${req.protocol}://${host || 'localhost'}`;
+    }
+  } else {
+    baseUrl = `${req.protocol}://${host || 'localhost'}`;
+  }
   return `${baseUrl.replace(/\/$/, '')}/invitation/${invitation.slug}?token=${token}`;
 };
 
@@ -219,7 +229,15 @@ router.get('/:id/qr', authenticate, async (req, res, next) => {
   try {
     const id = req.params.id as string;
     const userId = (req as any).userId;
-    const format = (req.query.format as string) === 'svg' ? 'svg' : 'png';
+    const formatParam = req.query.format as string | undefined;
+    let format: 'png' | 'svg';
+    if (formatParam === undefined || formatParam === 'png') {
+      format = 'png';
+    } else if (formatParam === 'svg') {
+      format = 'svg';
+    } else {
+      return res.status(400).json({ error: 'format must be "png" or "svg"' });
+    }
 
     const guest = await prisma.guest.findUnique({
       where: { id },
@@ -253,11 +271,15 @@ router.get('/:id/qr', authenticate, async (req, res, next) => {
       margin: 2,
       width: 512,
     });
+    // Include guest ID in filename to avoid collision when two guest names
+    // collapse to the same sanitized string (e.g. "Nguyễn Văn A" and
+    // "Nguyễn_Văn_A" both became "Nguy_n_V_n_A").
+    const safeName = guest.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^_+|_+$/g, '') || 'guest';
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'private, max-age=300');
     res.setHeader(
       'Content-Disposition',
-      `inline; filename="qr-${guest.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.png"`,
+      `inline; filename="qr-${safeName}-${guest.id.slice(0, 8)}.png"`,
     );
     return res.send(png);
   } catch (error) {
@@ -283,10 +305,21 @@ router.post('/:id/regenerate-token', authenticate, async (req, res, next) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const updated = await prisma.guest.update({
-      where: { id },
-      data: { token: generateGuestToken() },
+    // Race protection: only update if the token is still the one we just read.
+    // If a concurrent request beat us, the update affects 0 rows and we 409.
+    const newToken = generateGuestToken();
+    const updateResult = await prisma.guest.updateMany({
+      where: { id, token: guest.token },
+      data: { token: newToken },
     });
+    if (updateResult.count === 0) {
+      return res.status(409).json({ error: 'Token was rotated by a concurrent request' });
+    }
+
+    const updated = await prisma.guest.findUnique({ where: { id } });
+    if (!updated) {
+      return res.status(404).json({ error: 'Guest not found' });
+    }
 
     res.json({
       guestId: updated.id,

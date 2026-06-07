@@ -161,8 +161,8 @@ cd server && npx tsx prisma/seed.ts
 
 ## 🔄 Current PR Queue
 
-- **PR #7** `fix/client-tsc-test-errors` → `main` — Cleanup 19 pre-existing client `tsc --noEmit` errors in 3 test files. **Unblocks `npm run build`** end-to-end. Client 75/75 (unchanged), server 81/81, tsc clean, vite build clean. Pure typing fixes, no behavior changes.
-- PR #4 (music), PR #5 (gallery), PR #6 (countdown test) already merged to main.
+- **PR #8** `fix/review-findings-batch-1` → `main` — Cleanup batch addressing 5 review findings from PR #1 + #2: dead SectionRenderer comments, redundant phone validation, Content-Disposition filename collision (now includes short guest-id suffix), `format` param validation (400 on bad value), PUBLIC_BASE_URL env validation (try/catch URL parse), regenerate-token race protection (updateMany with where on token → 409 on stale). 2 new server tests. Server 83/83, client 75/75, tsc clean.
+- PR #7 (tsc cleanup) and earlier already merged to main.
 
 ## 📝 Follow-up Debt (post-merge, not blocking)
 

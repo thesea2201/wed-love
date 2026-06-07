@@ -9,11 +9,6 @@ import MapSection from './MapSection';
 import MusicSection from './MusicSection';
 import GiftSection from './GiftSection';
 
-// Lazy-load Phase 4 sections when they're built
-// import VoiceSection from '../components/sections/VoiceSection';
-// import LivestreamSection from '../components/sections/LivestreamSection';
-// import CustomSection from '../components/sections/CustomSection';
-
 const SECTION_COMPONENTS: Partial<Record<SectionType, React.ComponentType<SectionProps>>> = {
   hero: HeroSection as any,
   story: StorySection as any,
