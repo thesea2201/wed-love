@@ -46,13 +46,14 @@ export default function SectionRenderer({ sections, invitation, guest, guestToke
         }
 
         return (
-          <Component
-            key={section.id}
-            config={section.config}
-            invitation={invitation}
-            guest={guest}
-            {...extraProps}
-          />
+          <div key={section.id} id={section.type}>
+            <Component
+              config={section.config}
+              invitation={invitation}
+              guest={guest}
+              {...extraProps}
+            />
+          </div>
         );
       })}
     </>
