@@ -92,14 +92,19 @@ describe('GuestList QR modal', () => {
     const rotateButton = screen.getByTitle('Invalidate current link and issue a new one');
     fireEvent.click(rotateButton);
 
-    const dialog = await screen.findByRole('dialog');
+    // Find the confirm dialog specifically (not the QR modal behind it)
+    // The confirm dialog has a button with testid 'confirm-yes'
+    const confirmYes = await screen.findByTestId('confirm-yes');
+    const dialog = confirmYes.closest('[role="dialog"]') as HTMLElement;
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveTextContent(/Tạo mã QR mới/);
 
     fireEvent.click(screen.getByRole('button', { name: 'Hủy' }));
 
     await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      // Both dialogs should be closed
+      expect(screen.queryByRole('dialog', { name: /Tạo mã QR mới/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /QR Code/ })).not.toBeInTheDocument();
     });
 
     expect(mockPost).not.toHaveBeenCalled();

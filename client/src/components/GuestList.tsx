@@ -3,6 +3,7 @@ import api from '../utils/api';
 import ImportGuestsModal from './guest-import/ImportGuestsModal';
 import { useToast } from './Toast';
 import { useConfirm } from './ConfirmDialog';
+import Modal from './ui/Modal';
 
 interface Guest {
   id: string;
@@ -232,8 +233,8 @@ export default function GuestList({ invitationId }: Props) {
       )}
 
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <form onSubmit={handleAddGuest} className="bg-white rounded-xl p-6 w-full max-w-md">
+        <Modal open onClose={() => setShowAddModal(false)} maxWidth="md">
+          <form onSubmit={handleAddGuest} className="p-6">
             <h4 className="text-lg font-semibold mb-4">Thêm khách mời</h4>
             <div className="space-y-4">
               <input
@@ -278,18 +279,12 @@ export default function GuestList({ invitationId }: Props) {
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {showQrModal && qrGuest && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={closeQrModal}
-        >
-          <div
-            className="bg-white rounded-xl p-6 w-full max-w-sm"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <Modal open onClose={closeQrModal} maxWidth="sm">
+          <div className="p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h4 className="text-lg font-semibold">QR Code</h4>
@@ -370,7 +365,7 @@ export default function GuestList({ invitationId }: Props) {
               </>
             )}
           </div>
-        </div>
+        </Modal>
       )}
 
       {showImportModal && (

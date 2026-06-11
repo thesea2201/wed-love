@@ -4,6 +4,7 @@ import StepUpload from './StepUpload';
 import StepMapColumns from './StepMapColumns';
 import StepPreview from './StepPreview';
 import DuplicateDialog from './DuplicateDialog';
+import Modal from '../ui/Modal';
 import {
   DuplicateGroup,
   GuestField,
@@ -134,26 +135,25 @@ export default function ImportGuestsModal({ invitationId, onClose, onSuccess }: 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-        <div className="p-5 border-b flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold">Import khách mời từ CSV</h3>
-            <div className="flex gap-1 mt-2">
-              {[1, 2, 3].map((s) => (
-                <div
-                  key={s}
-                  className={`h-1 w-12 rounded ${
-                    s <= step ? 'bg-primary' : 'bg-gray-200'
-                  }`}
-                />
-              ))}
-            </div>
+    <Modal open onClose={onClose} maxWidth="3xl">
+      <div className="p-5 border-b flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Import khách mời từ CSV</h3>
+          <div className="flex gap-1 mt-2">
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`h-1 w-12 rounded ${
+                  s <= step ? 'bg-primary' : 'bg-gray-200'
+                }`}
+              />
+            ))}
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
-            ×
-          </button>
         </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">
+          ×
+        </button>
+      </div>
 
         <div className="p-5 overflow-y-auto flex-1">
           {errorMessage && (
@@ -208,7 +208,6 @@ export default function ImportGuestsModal({ invitationId, onClose, onSuccess }: 
             )}
           </div>
         </div>
-      </div>
 
       {showDupDialog && (
         <DuplicateDialog
@@ -217,6 +216,6 @@ export default function ImportGuestsModal({ invitationId, onClose, onSuccess }: 
           onCancel={() => setShowDupDialog(false)}
         />
       )}
-    </div>
+    </Modal>
   );
 }

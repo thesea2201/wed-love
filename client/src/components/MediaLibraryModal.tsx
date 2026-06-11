@@ -63,11 +63,12 @@ export default function MediaLibraryModal({ gallery, onSelect, onClose, onUpload
           return u;
         })
       );
-    } catch (err) {
+    } catch (err: any) {
+      const message = err.response?.data?.error || err.message || 'Upload failed';
       setUploads((prev) =>
         prev.map((u) => {
           if (pending.find((p) => p.file === u.file)) {
-            return { ...u, error: 'Upload failed' };
+            return { ...u, error: message };
           }
           return u;
         })

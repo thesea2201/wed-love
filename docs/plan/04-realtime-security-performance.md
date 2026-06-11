@@ -166,9 +166,9 @@ const encrypt = (text: string): string => {
 
 ```typescript
 // Lazy load sections (already partially used in InvitationView)
-const HeroSection = lazy(() => import('./components/HeroSection'));
+const HeroSection = lazy(() => import('./components/sections/HeroSection'));
 const GallerySection = lazy(() => import('./components/GallerySection'));
-const RSVPSection = lazy(() => import('./components/RSVPSection'));
+const RSVPSection = lazy(() => import('./components/sections/RSVPSection'));
 
 // Intersection Observer for animation triggers
 const useInView = (options?: IntersectionObserverInit) => {

@@ -1,4 +1,5 @@
 import { DuplicateGroup } from './parseCsv';
+import Modal from '../ui/Modal';
 
 interface Props {
   duplicates: DuplicateGroup[];
@@ -11,8 +12,8 @@ export default function DuplicateDialog({ duplicates, onChoice, onCancel }: Prop
   const wouldSkip = totalDupRows - duplicates.length;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-xl w-full max-w-md p-6">
+    <Modal open onClose={onCancel} maxWidth="md" zIndex={60}>
+      <div className="p-6">
         <h3 className="text-lg font-semibold mb-2">⚠️ Phát hiện dữ liệu trùng lặp</h3>
         <p className="text-sm text-gray-600 mb-4">
           File có <span className="font-semibold">{duplicates.length}</span> nhóm trùng
@@ -51,6 +52,6 @@ export default function DuplicateDialog({ duplicates, onChoice, onCancel }: Prop
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
