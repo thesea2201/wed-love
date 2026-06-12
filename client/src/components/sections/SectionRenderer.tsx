@@ -8,6 +8,9 @@ import CountdownSection from './CountdownSection';
 import MapSection from './MapSection';
 import MusicSection from './MusicSection';
 import GiftSection from './GiftSection';
+import VoiceSection from './VoiceSection';
+import LivestreamSection from './LivestreamSection';
+import CustomSection from './CustomSection';
 
 const SECTION_COMPONENTS: Partial<Record<SectionType, React.ComponentType<SectionProps>>> = {
   hero: HeroSection as any,
@@ -19,6 +22,9 @@ const SECTION_COMPONENTS: Partial<Record<SectionType, React.ComponentType<Sectio
   map: MapSection,
   music: MusicSection,
   gift: GiftSection,
+  voice: VoiceSection as any,
+  livestream: LivestreamSection as any,
+  custom: CustomSection as any,
 };
 
 interface SectionRendererProps {
