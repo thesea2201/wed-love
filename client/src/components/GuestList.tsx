@@ -18,6 +18,8 @@ interface Guest {
 interface QrInfo {
   guestId: string;
   guestName: string;
+  slug: string;
+  token: string;
   url: string;
   pngUrl: string;
   svgUrl: string;
@@ -47,6 +49,20 @@ export default function GuestList({ invitationId }: Props) {
   const [qrError, setQrError] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Build the public guest URL from the FE origin + slug + token. We never
+  // trust the BE-provided `qrInfo.url` for the origin — in dev, BE and FE
+  // run on different ports, and `Host` header spoofing could let an attacker
+  // make the BE mint a URL pointing at a malicious domain. The path/query
+  // from BE is fine (we just need the slug and token, which the BE returns
+  // directly), but the origin must come from the user's address bar.
+  const publicUrl = qrInfo
+    ? `${window.location.origin}/invitation/${qrInfo.slug}?token=${qrInfo.token}`
+    : '';
+  // The BE QR endpoint accepts `?url=` and encodes that into the QR instead
+  // of building one from the request host. Pass the FE-origin URL so the
+  // scanned QR opens the right origin regardless of dev/prod setup.
+  const qrPngSrc = qrInfo ? `${qrInfo.pngUrl}&url=${encodeURIComponent(publicUrl)}` : '';
 
   useEffect(() => {
     const fetchGuests = async () => {
@@ -158,9 +174,9 @@ export default function GuestList({ invitationId }: Props) {
   };
 
   const handleCopyLink = async () => {
-    if (!qrInfo?.url) return;
+    if (!qrInfo) return;
     try {
-      await navigator.clipboard.writeText(qrInfo.url);
+      await navigator.clipboard.writeText(publicUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -313,7 +329,7 @@ export default function GuestList({ invitationId }: Props) {
               <>
                 <div className="aspect-square bg-white p-4 rounded-lg border">
                   <img
-                    src={qrInfo.pngUrl}
+                    src={qrPngSrc}
                     alt={`QR code for ${qrInfo.guestName}`}
                     className="w-full h-full"
                   />
@@ -330,7 +346,7 @@ export default function GuestList({ invitationId }: Props) {
                     </button>
                   </div>
                   <div className="font-mono text-xs bg-gray-50 p-2 rounded break-all">
-                    {qrInfo.url}
+                    {publicUrl}
                   </div>
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>
@@ -347,7 +363,7 @@ export default function GuestList({ invitationId }: Props) {
 
                 <div className="flex gap-2 mt-4">
                   <a
-                    href={qrInfo.pngUrl}
+                    href={qrPngSrc}
                     download={`qr-${qrInfo.guestName.replace(/[^a-zA-Z0-9_-]/g, '_')}.png`}
                     className="flex-1 text-center px-4 py-2 bg-dark text-white rounded-lg text-sm"
                   >

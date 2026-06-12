@@ -39,9 +39,11 @@ const sampleGuest = {
 const sampleQrInfo = {
   guestId: 'guest-1',
   guestName: 'An',
-  url: 'https://wed.love/inv/an-va-linh-token-abc',
-  pngUrl: '/api/v1/guests/guest-1/qr.png?format=png',
-  svgUrl: '/api/v1/guests/guest-1/qr.svg?format=svg',
+  slug: 'an-va-linh-demo',
+  token: 'd867ac9113588253ccdf2e2268ff4f07',
+  url: 'https://wed.love/invitation/an-va-linh-demo?token=d867ac9113588253ccdf2e2268ff4f07',
+  pngUrl: '/api/v1/guests/guest-1/qr?format=png',
+  svgUrl: '/api/v1/guests/guest-1/qr?format=svg',
   viewedAt: '2026-05-01T10:00:00Z',
   viewCount: 3,
 };
@@ -67,11 +69,21 @@ describe('GuestList QR modal', () => {
     fireEvent.click(qrButton);
 
     expect(await screen.findByText(/Link:/)).toBeInTheDocument();
-    expect(screen.getByAltText(`QR code for ${sampleQrInfo.guestName}`)).toHaveAttribute(
+    // The client builds the displayed link from window.location.origin (FE origin),
+    // not the BE-derived `qrInfo.url`. Defends against Host header spoofing.
+    const expectedPublicUrl = `${window.location.origin}/invitation/${sampleQrInfo.slug}?token=${sampleQrInfo.token}`;
+    const qrImg = screen.getByAltText(`QR code for ${sampleQrInfo.guestName}`);
+    // The <img> src should be the BE PNG endpoint, with the FE-origin URL passed
+    // as a query param so the encoded QR opens the correct origin.
+    expect(qrImg).toHaveAttribute(
       'src',
-      sampleQrInfo.pngUrl
+      expect.stringMatching(/^\/api\/v1\/guests\/guest-1\/qr\?format=png&url=/)
     );
-    expect(screen.getByText(sampleQrInfo.url)).toBeInTheDocument();
+    expect(qrImg.getAttribute('src')).toContain(
+      `url=${encodeURIComponent(expectedPublicUrl)}`
+    );
+    expect(screen.getByText(expectedPublicUrl)).toBeInTheDocument();
+    expect(screen.queryByText(sampleQrInfo.url)).not.toBeInTheDocument();
     expect(screen.getByText(/Opened 3×/)).toBeInTheDocument();
 
     expect(mockGet).toHaveBeenCalledWith('/guests/guest-1/qr-info');

@@ -217,6 +217,8 @@ router.get('/:id/qr-info', authenticate, async (req, res, next) => {
     res.json({
       guestId: guest.id,
       guestName: guest.name,
+      slug: guest.invitation.slug,
+      token: guest.token,
       url,
       pngUrl: `/guests/${guest.id}/qr?format=png`,
       svgUrl: `/guests/${guest.id}/qr?format=svg`,
@@ -229,6 +231,11 @@ router.get('/:id/qr-info', authenticate, async (req, res, next) => {
 });
 
 // QR code image (PNG by default, optional SVG)
+// Accepts an optional `?url=...` override — when the caller (FE dashboard) knows
+// the correct public origin, it passes the canonical guest URL here and we
+// encode that into the QR. Falls back to the host-derived URL otherwise, which
+// is correct in production behind a single host but can be wrong in dev
+// (FE on :5173, BE on :3000) and is also vulnerable to Host header spoofing.
 router.get('/:id/qr', authenticate, async (req, res, next) => {
   try {
     const id = req.params.id as string;
@@ -246,7 +253,28 @@ router.get('/:id/qr', authenticate, async (req, res, next) => {
     const guest = await findGuestForUser(id, userId, res);
     if (!guest) return;
 
-    const url = buildGuestInviteUrl(req, guest.invitation, guest.token);
+    const overrideUrl = typeof req.query.url === 'string' ? req.query.url : undefined;
+    let url: string;
+    if (overrideUrl) {
+      try {
+        const parsed = new URL(overrideUrl);
+        // Only accept http(s) overrides that target THIS invitation's slug.
+        // This prevents an authenticated dashboard user from minting a QR
+        // for an arbitrary URL by hitting this endpoint with a crafted
+        // `?url=` query string.
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return res.status(400).json({ error: 'url must be http(s)' });
+        }
+        if (!parsed.pathname.startsWith(`/invitation/${guest.invitation.slug}`)) {
+          return res.status(400).json({ error: 'url must target this invitation' });
+        }
+        url = overrideUrl;
+      } catch {
+        return res.status(400).json({ error: 'url is not a valid URL' });
+      }
+    } else {
+      url = buildGuestInviteUrl(req, guest.invitation, guest.token);
+    }
 
     if (format === 'svg') {
       const svg = await QRCode.toString(url, {
