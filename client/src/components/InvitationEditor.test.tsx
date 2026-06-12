@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
 vi.mock('../utils/api', () => ({
@@ -66,7 +67,11 @@ const sampleInvitation = {
 async function setup() {
   mockGet.mockResolvedValue({ data: { invitation: sampleInvitation } });
   mockPatch.mockResolvedValue({ data: { ok: true } });
-  render(<InvitationEditor invitationId="inv-1" />);
+  render(
+    <MemoryRouter initialEntries={['/dashboard/inv-1/editor/content']}>
+      <InvitationEditor invitationId="inv-1" />
+    </MemoryRouter>
+  );
   await screen.findByTestId('content-tab');
 }
 

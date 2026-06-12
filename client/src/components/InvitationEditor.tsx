@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { NavLink } from 'react-router-dom';
 import api from '../utils/api';
 import { formatRelativeTime } from '../utils/relative-time';
 import type { InvitationData, SectionConfig } from '../types';
@@ -12,13 +13,19 @@ import { useIsMobile } from '../hooks/use-media-query';
 
 interface Props {
   invitationId: string;
+  // Controlled by the URL (e.g. /dashboard/:invId/editor/:editorTab). Optional
+  // for back-compat with existing call sites and tests that don't URL-drive it.
+  activeTab?: EditorTab;
 }
 
-export default function InvitationEditor({ invitationId }: Props) {
+export default function InvitationEditor({ invitationId, activeTab: activeTabProp }: Props) {
   // Editor state
   const [original, setOriginal] = useState<InvitationData | null>(null);
   const [draft, setDraft] = useState<InvitationData | null>(null);
-  const [activeTab, setActiveTab] = useState<EditorTab>('content');
+  // Active tab is controlled by the URL via the parent route (EditorTab). When
+  // no prop is provided (e.g. used in isolation or in older tests), fall back
+  // to 'content' so the component still works.
+  const activeTab: EditorTab = activeTabProp ?? 'content';
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -150,19 +157,21 @@ export default function InvitationEditor({ invitationId }: Props) {
     }
   };
 
-  // Tab button component - compact on mobile
+  // Tab nav link - URL-driven so reload preserves the active tab. Compact on mobile.
   const TabButton = ({ tab, label, icon }: { tab: EditorTab; label: string; icon: string }) => (
-    <button
-      onClick={() => setActiveTab(tab)}
-      className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 ${
-        activeTab === tab
-          ? 'border-primary text-primary'
-          : 'border-transparent text-gray-500 hover:text-gray-700'
-      }`}
+    <NavLink
+      to={`/dashboard/${invitationId}/editor/${tab}`}
+      className={({ isActive }) =>
+        `flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 ${
+          isActive || activeTab === tab
+            ? 'border-primary text-primary'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+        }`
+      }
     >
       <span className="text-base">{icon}</span>
       <span className="text-[10px] sm:text-sm">{label}</span>
-    </button>
+    </NavLink>
   );
 
   if (!draft) {

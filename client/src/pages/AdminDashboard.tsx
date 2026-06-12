@@ -1,22 +1,16 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useInvitationList, useInvitationAdmin, useUpdateInvitation, useUpdateSections, usePublishInvitation } from '../hooks/use-invitation';
-import { useAnalytics } from '../hooks/use-analytics';
-import GuestList from '../components/GuestList';
-import InvitationEditor from '../components/InvitationEditor';
+import { useNavigate, NavLink, Link, Outlet, useParams } from 'react-router-dom';
+import { useInvitationList } from '../hooks/use-invitation';
 
+// Layout route for the admin dashboard. Renders the header, the invitation
+// selector, the top-level tab strip, and an <Outlet /> for the child route
+// (EditorTab / GuestsTab / AnalyticsTab). The selected invitation comes from
+// the :invId URL param so reload, deep links, and back/forward all preserve
+// the current view.
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'editor' | 'guests' | 'analytics'>('editor');
-  const [selectedInvitationId, setSelectedInvitationId] = useState<string>('');
   const navigate = useNavigate();
+  const { invId } = useParams<{ invId: string }>();
 
   const { data: invitations = [], isLoading } = useInvitationList();
-  const { data: analyticsData } = useAnalytics(selectedInvitationId);
-
-  // Auto-select first invitation
-  if (!selectedInvitationId && invitations.length > 0) {
-    setSelectedInvitationId(invitations[0].id);
-  }
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -31,7 +25,61 @@ export default function AdminDashboard() {
     );
   }
 
-  const selectedInvitation = invitations.find((i) => i.id === selectedInvitationId);
+  // No invitations at all — empty state, not a redirect loop.
+  if (invitations.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <h1 className="text-xl font-semibold">WedLove</h1>
+            <div className="flex items-center gap-4">
+              <Link to="/settings" className="text-sm text-gray-600 hover:text-gray-900">
+                Cài đặt
+              </Link>
+              <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-gray-900">
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </header>
+        <div className="max-w-2xl mx-auto py-16 px-4 text-center">
+          <h2 className="text-2xl font-semibold mb-2">Bạn chưa có thiệp nào</h2>
+          <p className="text-gray-600">Tạo thiệp cưới đầu tiên của bạn để bắt đầu.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Resolve the current invitation from the URL. If the URL id doesn't match
+  // any invitation (deleted, typo, etc.), don't redirect silently — the user
+  // might have a typo or stale link. Show a 404-ish message and a way back.
+  const currentInvitation = invitations.find((i) => i.id === invId);
+  if (!currentInvitation) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <h1 className="text-xl font-semibold">WedLove</h1>
+            <button onClick={handleLogout} className="text-sm text-gray-600 hover:text-gray-900">
+              Đăng xuất
+            </button>
+          </div>
+        </header>
+        <div className="max-w-2xl mx-auto py-16 px-4 text-center">
+          <h2 className="text-2xl font-semibold mb-2">Thiệp không tồn tại</h2>
+          <p className="text-gray-600 mb-6">
+            Thiệp này có thể đã bị xoá hoặc bạn không có quyền truy cập.
+          </p>
+          <Link
+            to={`/dashboard/${invitations[0].id}/editor/content`}
+            className="inline-block px-4 py-2 bg-dark text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+          >
+            Quay lại thiệp đầu tiên
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,84 +98,99 @@ export default function AdminDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {invitations.length > 0 && (
-          <div className="mb-4 flex flex-col sm:flex-row gap-3 sm:items-center">
+        {/* Invitation selector + status + view link */}
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <span className="text-sm text-gray-500 whitespace-nowrap">Thiệp:</span>
             <select
-              value={selectedInvitationId}
-              onChange={(e) => setSelectedInvitationId(e.target.value)}
-              className="px-3 py-2 border rounded-lg bg-white w-full sm:w-auto"
+              value={currentInvitation.id}
+              onChange={(e) => {
+                // Switching invitations is itself a URL change. We always
+                // land on the editor's content tab so the user sees a known
+                // state after switching.
+                const next = e.target.value;
+                navigate(`/dashboard/${next}/editor/content`);
+              }}
+              className="flex-1 max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {invitations.map((inv) => (
                 <option key={inv.id} value={inv.id}>
-                  {inv.title} {inv.isPublished ? '✅' : '📝'}
+                  {inv.title || inv.slug}
                 </option>
               ))}
             </select>
-            {selectedInvitation && (
-              <a
-                href={`/invitation/${selectedInvitation.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline sm:ml-3 flex items-center gap-1"
-              >
-                Xem thiệp →
-              </a>
-            )}
-          </div>
-        )}
-
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-          {([
-            { key: 'editor', label: 'Trình soạn', icon: '✏️' },
-            { key: 'guests', label: 'Khách mời', icon: '👥' },
-            { key: 'analytics', label: 'Thống kê', icon: '📊' },
-          ] as const).map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap flex items-center gap-2 ${
-                activeTab === tab.key
-                  ? 'bg-dark text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
+            <span
+              className={`px-2 py-1 rounded text-xs whitespace-nowrap ${
+                currentInvitation.isPublished
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-gray-100 text-gray-600'
               }`}
             >
-              <span className="sm:hidden">{tab.icon}</span>
-              <span className="hidden sm:inline">{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          ))}
+              {currentInvitation.isPublished ? 'Đã xuất bản' : 'Bản nháp'}
+            </span>
+          </div>
+          {currentInvitation.isPublished && (
+            <a
+              href={`/invitation/${currentInvitation.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline whitespace-nowrap"
+            >
+              Xem thiệp →
+            </a>
+          )}
         </div>
 
-        {activeTab === 'editor' && selectedInvitationId && (
-          <InvitationEditor invitationId={selectedInvitationId} />
-        )}
-        {activeTab === 'guests' && selectedInvitationId && (
-          <GuestList invitationId={selectedInvitationId} />
-        )}
-        {activeTab === 'analytics' && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4">Thống kê</h3>
-            {analyticsData ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-primary/10 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-primary">{analyticsData.views}</div>
-                  <div className="text-sm text-gray-600">Lượt xem</div>
-                </div>
-                <div className="bg-green-100 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-green-600">{analyticsData.attending}</div>
-                  <div className="text-sm text-gray-600">Sẽ tham dự</div>
-                </div>
-                <div className="bg-blue-100 rounded-lg p-4 text-center">
-                  <div className="text-3xl font-bold text-blue-600">{analyticsData.totalGuests}</div>
-                  <div className="text-sm text-gray-600">Tổng khách mời</div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center text-gray-400 py-8">Đang tải thống kê...</div>
-            )}
-          </div>
-        )}
+        {/* Top-level tabs — URL-driven so reload preserves the active tab. */}
+        <div className="bg-white rounded-xl shadow-sm mb-6">
+          <nav className="flex border-b overflow-x-auto scrollbar-hide">
+            <TopTab
+              to={`/dashboard/${currentInvitation.id}/editor/content`}
+              label="Trình chỉnh sửa"
+              icon="✏️"
+            />
+            <TopTab
+              to={`/dashboard/${currentInvitation.id}/guests`}
+              label="Khách mời"
+              icon="👥"
+            />
+            <TopTab
+              to={`/dashboard/${currentInvitation.id}/analytics`}
+              label="Analytics"
+              icon="📊"
+            />
+          </nav>
+        </div>
+
+        {/* Child route renders here */}
+        <Outlet />
       </div>
     </div>
+  );
+}
+
+function TopTab({
+  to,
+  label,
+  icon,
+}: {
+  to: string;
+  label: string;
+  icon: string;
+}) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
+          isActive
+            ? 'border-primary text-primary'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+        }`
+      }
+    >
+      <span className="text-base">{icon}</span>
+      <span>{label}</span>
+    </NavLink>
   );
 }
