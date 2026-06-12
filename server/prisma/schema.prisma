@@ -68,6 +68,8 @@ model Invitation {
   livestreams   Livestream[]
   aiSuggestions AISuggestion[]
   payments      Payment[]
+  wishes        Wish[]
+  gifts         Gift[]
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -109,6 +111,8 @@ model Guest {
   chatMessages      ChatMessage[]
   guestPhotos       GuestPhoto[]
   payments          Payment[]
+  wishes            Wish[]
+  gifts             Gift[]
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -238,4 +242,39 @@ model AISuggestion {
 
   @@index([invitationId, type])
   @@map("ai_suggestions")
+}
+
+model Wish {
+  id               String     @id @default(uuid())
+  guestId          String     @map("guest_id")
+  invitationId     String     @map("invitation_id")
+  text             String
+  audioUrl         String?    @map("audio_url")
+  audioDuration    Int?       @map("audio_duration")
+  moderationStatus String     @default("pending") @map("moderation_status")
+  isPublic         Boolean    @default(true) @map("is_public")
+  guest            Guest      @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  invitation       Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  gifts            Gift[]
+  createdAt        DateTime   @default(now()) @map("created_at")
+
+  @@index([invitationId, moderationStatus, createdAt])
+  @@index([guestId])
+  @@map("wishes")
+}
+
+model Gift {
+  id           String     @id @default(uuid())
+  wishId       String     @map("wish_id")
+  guestId      String     @map("guest_id")
+  invitationId String     @map("invitation_id")
+  giftType     String     @map("gift_type")
+  wish         Wish       @relation(fields: [wishId], references: [id], onDelete: Cascade)
+  guest        Guest      @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@index([wishId])
+  @@index([invitationId, createdAt])
+  @@map("gifts")
 }

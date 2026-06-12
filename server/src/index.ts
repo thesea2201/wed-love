@@ -10,6 +10,8 @@ import authRoutes from './routes/auth.routes';
 import invitationRoutes from './routes/invitation.routes';
 import guestRoutes from './routes/guest.routes';
 import uploadRoutes from './routes/upload.routes';
+import wishRoutes from './routes/wish.routes';
+import wishAdminRoutes from './routes/wish-admin.routes';
 
 dotenv.config();
 
@@ -41,6 +43,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/invitations', invitationRoutes);
 app.use('/api/v1/guests', guestRoutes);
 app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1', wishRoutes);
+app.use('/api/v1', wishAdminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
