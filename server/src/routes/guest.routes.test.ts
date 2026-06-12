@@ -581,8 +581,11 @@ describe('Guest QR Code Endpoints', () => {
         url: expect.stringContaining(
           `/invitation/${testInvitation.slug}?token=${testGuest.token}`,
         ),
-        pngUrl: `/guests/${testGuest.id}/qr?format=png`,
-        svgUrl: `/guests/${testGuest.id}/qr?format=svg`,
+        // BE now returns absolute URLs so dev (FE :5173 / BE :3000) works
+        // without going through the Vite proxy. The path portion is what
+        // matters; the host is whatever the test server binds to.
+        pngUrl: expect.stringMatching(/\/api\/v1\/guests\/.+\/qr\?format=png$/),
+        svgUrl: expect.stringMatching(/\/api\/v1\/guests\/.+\/qr\?format=svg$/),
         viewedAt: null,
         viewCount: 0,
       });
@@ -684,6 +687,51 @@ describe('Guest QR Code Endpoints', () => {
         .get(`/guests/${testGuest.id}/qr`)
         .set('Authorization', `Bearer ${otherAuthToken}`);
       expect(res.status).toBe(403);
+    });
+
+    it('encodes an FE-origin override when ?url= targets this invitation', async () => {
+      const override = `http://localhost:5173/invitation/${testInvitation.slug}?token=${testGuest.token}`;
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr?format=svg&url=${encodeURIComponent(override)}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .buffer(true)
+        .parse((response, callback) => {
+          const chunks: Buffer[] = [];
+          response.on('data', (chunk: Buffer) => chunks.push(chunk));
+          response.on('end', () => callback(null, Buffer.concat(chunks)));
+        });
+
+      expect(res.status).toBe(200);
+      // We can't easily inspect the encoded URL inside the SVG, but a 200
+      // response with a valid SVG proves the override path was accepted.
+      expect(res.headers['content-type']).toMatch(/^image\/svg\+xml/);
+      expect((res.body as Buffer).toString('utf8')).toMatch(/^<svg/);
+    });
+
+    it('rejects a ?url= override that targets a different invitation', async () => {
+      const override = `http://localhost:5173/invitation/somebody-elses-slug?token=abc`;
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr?url=${encodeURIComponent(override)}`)
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'url must target this invitation');
+    });
+
+    it('rejects a ?url= override with a non-http(s) protocol', async () => {
+      const override = `javascript:alert(1)`;
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr?url=${encodeURIComponent(override)}`)
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'url must be http(s)');
+    });
+
+    it('rejects a ?url= override that is not a valid URL', async () => {
+      const res = await request(app)
+        .get(`/guests/${testGuest.id}/qr?url=not-a-url`)
+        .set('Authorization', `Bearer ${authToken}`);
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'url is not a valid URL');
     });
   });
 

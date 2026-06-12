@@ -213,6 +213,14 @@ router.get('/:id/qr-info', authenticate, async (req, res, next) => {
     if (!guest) return;
 
     const url = buildGuestInviteUrl(req, guest.invitation, guest.token);
+    // Return absolute URLs to the QR image endpoints. In dev (FE :5173, BE
+    // :3000) the dashboard hits the BE directly because the Vite proxy only
+    // forwards /api — a same-origin relative path would 404. We piggyback
+    // on the same public-base logic as buildGuestInviteUrl so prod (single
+    // host) keeps working when PUBLIC_BASE_URL is set.
+    const publicBase =
+      process.env.PUBLIC_BASE_URL?.replace(/\/$/, '') ||
+      `${req.protocol}://${req.get('host')}`;
 
     res.json({
       guestId: guest.id,
@@ -220,8 +228,8 @@ router.get('/:id/qr-info', authenticate, async (req, res, next) => {
       slug: guest.invitation.slug,
       token: guest.token,
       url,
-      pngUrl: `/guests/${guest.id}/qr?format=png`,
-      svgUrl: `/guests/${guest.id}/qr?format=svg`,
+      pngUrl: `${publicBase}/api/v1/guests/${guest.id}/qr?format=png`,
+      svgUrl: `${publicBase}/api/v1/guests/${guest.id}/qr?format=svg`,
       viewedAt: guest.viewedAt,
       viewCount: guest.viewCount,
     });
