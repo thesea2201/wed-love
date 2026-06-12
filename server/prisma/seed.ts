@@ -22,6 +22,7 @@ const cinematicSections = [
   { id: 's5', type: 'rsvp', order: 4, visible: true, config: { showDietary: true, dietaryOptions: ['Ăn chay', 'Dị ứng đậu phộng', 'Dị ứng hải sản'], maxAttendees: 5 } },
   { id: 's6', type: 'map', order: 5, visible: true, config: {} },
   { id: 's7', type: 'gift', order: 6, visible: true, config: { methods: ['momo', 'bank_transfer'], showBankQR: true, customMessage: '' } },
+  { id: 's8', type: 'voice', order: 7, visible: true, config: {} },
 ];
 
 async function main() {
