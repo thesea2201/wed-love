@@ -34,6 +34,9 @@ const DEFAULT_CONFIGS: Record<string, SectionTypeConfig['config']> = {
     groomAccountName: '',
     displayMode: 'inline',
   },
+  voice: {
+    overlay: { height: 'full', trigger: 'always' },
+  },
 };
 
 const ALL_SECTION_TYPES = Object.keys(SECTION_TYPE_LABELS) as SectionType[];

@@ -50,6 +50,9 @@ export default function SectionRenderer({ sections, invitation, guest, guestToke
         if (section.type === 'rsvp' && guestToken) {
           extraProps.token = guestToken;
         }
+        if (section.type === 'voice' && guestToken) {
+          extraProps.guestToken = guestToken;
+        }
 
         return (
           <div key={section.id} id={section.type}>

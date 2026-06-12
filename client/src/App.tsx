@@ -9,6 +9,7 @@ import DashboardIndex from './pages/admin/DashboardIndex';
 import EditorTab from './pages/admin/EditorTab';
 import GuestsTab from './pages/admin/GuestsTab';
 import AnalyticsTab from './pages/admin/AnalyticsTab';
+import WishesModerationPage from './pages/admin/WishesModerationPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
@@ -34,6 +35,10 @@ function App() {
         <Route path="analytics" element={<AnalyticsTab />} />
       </Route>
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route
+        path="/dashboard/:invId/wishes"
+        element={<ProtectedRoute><WishesModerationPage /></ProtectedRoute>}
+      />
       <Route path="/invitation/:slug" element={<InvitationView />} />
       <Route path="/demo/:templateId" element={<DemoView />} />
     </Routes>
